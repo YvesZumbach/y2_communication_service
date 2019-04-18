@@ -5,19 +5,17 @@ import akka.cluster.ClusterEvent._
 import akka.cluster.Cluster
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
-import picocli.CommandLine.Command
 
 /**
   * Service that handles communication in the y2 cluster.
   */
-@Command(descriptionHeading = "A worker node in the y2 cluster.")
 class CommunicationService extends Actor with ActorLogging {
   /**
     * The y2 cluster.
     */
   private val cluster = Cluster(context.system)
 
-  val system: ActorSystem = ActorSystem.create("Appka")
+  implicit val system: ActorSystem = ActorSystem.create("Appka")
 
   /**
     * When the actor starts it tries to join the cluster.

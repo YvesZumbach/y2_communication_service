@@ -41,7 +41,7 @@ object ClientService extends MessageSequence with Actor with ActorLogging {
     * none was found.
     */
   override def preStart(): Unit = {
-    toBeProcessedFileNames = getListOfFiles(cwd).toSet
+    toBeProcessedFileNames = getListOfFiles("").toSet
 
     // Akka Management hosts the HTTP routes used by bootstrap
     AkkaManagement(context.system).start()

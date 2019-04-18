@@ -14,6 +14,6 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster" % "2.5.22",
   "com.typesafe.akka" %% "akka-cluster-tools" % akkaVersion,
   "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % "1.0.0",
-  "com.typesafe.akka" %% "akka-discovery" % "2.5.21",
+  "com.typesafe.akka" %% "akka-discovery" % "2.5.22",
   "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 )

@@ -12,7 +12,7 @@ import java.util.UUID
 object MessageSequence {
   val MaxFrameSizePropName = "akka.remote.netty.tcp.maximum-frame-size"
 
-  private[akka] case class Start(id: String, sender: ActorRef, totalSize: Int, chunks: Int,
+  private case class Start(id: String, sender: ActorRef, totalSize: Int, chunks: Int,
                                  serializerId: Int, clazz: Class[_ <: AnyRef])
   private case class Progress(start: Start, bytes: Array[Byte], timeout: Cancellable)
   private case class Chunk(id: String, chunkNumber: Int, bytes: Array[Byte])
@@ -124,7 +124,7 @@ trait MessageSequence { this: Actor with ActorLogging =>
     start.id
   }
 
-  private[akka] def startChunked(snd: ActorRef, to: ActorRef, obj: AnyRef): (Array[Byte], Start) = {
+  private def startChunked(snd: ActorRef, to: ActorRef, obj: AnyRef): (Array[Byte], Start) = {
     val (bytes, serializerId) = serialize(obj)
 
     val totalSize = bytes.length
@@ -139,7 +139,7 @@ trait MessageSequence { this: Actor with ActorLogging =>
     (bytes, start)
   }
 
-  private[akka] def sendRange(to: ActorRef, start: Start, bytes: Array[Byte], beginChunk: Int, endChunk: Int) {
+  private def sendRange(to: ActorRef, start: Start, bytes: Array[Byte], beginChunk: Int, endChunk: Int) {
     var chunkNum = beginChunk
     while (chunkNum < endChunk) {
       val begin = chunkNum * chunkSize
