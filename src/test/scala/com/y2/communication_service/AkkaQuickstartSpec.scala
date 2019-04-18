@@ -1,5 +1,5 @@
 //#full-example
-package com.y2.communication_client
+package com.y2.communication_service
 
 import org.scalatest.{ BeforeAndAfterAll, WordSpecLike, Matchers }
 import akka.actor.ActorSystem
