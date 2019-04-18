@@ -1,21 +1,21 @@
 package com.y2.communication_service
 
-import akka.actor.{Actor, ActorLogging}
+import akka.actor.{Actor, ActorLogging, ActorSystem}
 import akka.cluster.ClusterEvent._
 import akka.cluster.Cluster
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
+import picocli.CommandLine.Command
 
 /**
   * Service that handles communication in the y2 cluster.
   */
+@Command(descriptionHeading = "A worker node in the y2 cluster.")
 class CommunicationService extends Actor with ActorLogging {
   /**
     * The y2 cluster.
     */
   private val cluster = Cluster(context.system)
-
-  import akka.actor.ActorSystem
 
   val system: ActorSystem = ActorSystem.create("Appka")
 
@@ -25,11 +25,15 @@ class CommunicationService extends Actor with ActorLogging {
     * none was found.
     */
   override def preStart(): Unit = {
+    log.info("Worker started.")
+    log.info("Trying to connect to the cluster.")
+
     // Akka Management hosts the HTTP routes used by bootstrap
     AkkaManagement(context.system).start()
 
     // Starting the bootstrap process needs to be done explicitly
     ClusterBootstrap(context.system).start()
+    log.info("Worker connected to the cluster.")
 
     // Subscribe to MemberUp messages to perform setup actions when the node joins the cluster
     cluster.subscribe(self, classOf[MemberUp])
@@ -44,19 +48,15 @@ class CommunicationService extends Actor with ActorLogging {
     * Handle received messages.
     * @return a function that handles the received messages.
     */
-  def receive = { }
-
+  @Override
   def receive = {
-    case TransformationJob(text) => sender() ! TransformationResult(text.toUpperCase)
-    case state: CurrentClusterState =>
-      state.members.filter(_.status == MemberStatus.Up).foreach(register)
-    case MemberUp(m) => register(m)
+    case MemberUp(m) => println("some memeber is up.")
   }
 
-  def register(member: Member): Unit =
-    if (member.hasRole("frontend"))
-      context.actorSelection(RootActorPath(member.address) / "user" / "frontend") !
-        BackendRegistration
-}
+//  def register(member: Member): Unit =
+//    if (member.hasRole("frontend"))
+//      context.actorSelection(RootActorPath(member.address) / "user" / "frontend") !
+//        BackendRegistration
+//}
 
 }
