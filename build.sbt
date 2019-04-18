@@ -7,7 +7,7 @@ scalaVersion := "2.12.6"
 lazy val akkaVersion = "2.5.22"
 
 libraryDependencies ++= Seq(
-  "info.picocli" % "picocli" % "3.9.6",
+  "com.github.scopt" %% "scopt" % "3.5.0",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion,

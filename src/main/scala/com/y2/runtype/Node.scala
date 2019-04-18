@@ -1,20 +1,16 @@
-package com.y2.node
+package com.y2.runtype
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import com.typesafe.scalalogging.Logger
-import com.y2.Main
 import com.y2.communication_service.CommunicationService
-import picocli.CommandLine.Command
+import com.y2.config.Config
 
-@Command(
-  name = "node",
-  descriptionHeading = "The work-horse of the y2 cluster (also known as 'a node') that will actually train your neural network."
-)
-class Node(implicit system: ActorSystem) {
 
-  val log = Logger(classOf[Main])
+class Node(val nodeConfig: Config)(implicit system: ActorSystem) {
 
-  log.info("Node starting...")
+  val log = Logger(classOf[Node])
+
+  log.info("Starting node...")
 
   val communicationService: ActorRef = system.actorOf(Props[CommunicationService], "communication")
   log.info("Communication service started.")
