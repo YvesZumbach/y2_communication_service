@@ -1,10 +1,10 @@
-package com.y2.client
+package com.y2.client_service
 
 import akka.actor.{Actor, ActorLogging, ActorPath, ActorSystem, Props}
 import akka.cluster.client.{ClusterClient,ClusterClientSettings}
 import com.typesafe.config.ConfigFactory
 
-object ClientService {
+object ClientService extends MessageSequence with Actor with ActorLogging {
   def main(args: Array[String]): Unit = {
     val config = ConfigFactory.parseString("akka.remote.netty.tcp.port=4551").withFallback(ConfigFactory.load())
     val system = ActorSystem("ScalaClusterClientSystem", config)
@@ -17,5 +17,11 @@ object ClientService {
 
     c ! ClusterClient.Send("/user/serviceA", "hello", localAffinity = true)
     c ! ClusterClient.SendToAll("/user/serviceB", "hi")
+  }
+
+  def receive = {
+    case _ => {
+
+    }
   }
 }
