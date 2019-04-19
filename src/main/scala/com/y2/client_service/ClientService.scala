@@ -2,7 +2,7 @@ package com.y2.client_service
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.cluster.{Cluster, ClusterEvent}
-import com.y2.messages.ClientCommunicationMessage.{TrainingData, ClientAnswer, ClientRequest, RequestData}
+import com.y2.messages.ClientCommunicationMessage.{TrainingDataAnswer, ClientAnswer, ClientRequest, TrainingDataRequest}
 import java.io.File
 
 import scala.io.Source
@@ -58,7 +58,7 @@ class ClientService extends Actor with ActorLogging with MessageSequence {
       log.info("Received client request")
       sender ! ClientAnswer
     }
-    case RequestData() => {
+    case TrainingDataRequest() => {
       log.info("Received data request")
       sendMessageTo(sender)
     }
@@ -82,7 +82,7 @@ class ClientService extends Actor with ActorLogging with MessageSequence {
     val nextAudioToSend = currentlyProcessed.head
     currentlyProcessed = currentlyProcessed.drop(1)
     val audioByteArray = Files.readAllBytes(Paths.get("LibriSpeech", nextAudioToSend._1 + ".flac"))
-    sendChunked(to, TrainingData(audioByteArray, nextAudioToSend._2))
+    sendChunked(to, TrainingDataAnswer(audioByteArray, nextAudioToSend._2))
   }
 
   /**

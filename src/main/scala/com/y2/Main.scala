@@ -73,7 +73,7 @@ object Main {
     * Start the y2 client.
     */
   def client() = {
-    println("Running the client")
+    println("Running an y2 client.")
     val config: Config = ConfigFactory.parseString(s"""
         akka.cluster.roles = ["client"]
         """).withFallback(ConfigFactory.load())
@@ -86,6 +86,7 @@ object Main {
     * @param c
     */
   def node(c: Y2Config): Unit = {
+    println("Running an y2 node.")
     if (c.local) {
       for (i <- 1 to c.localNodeCount) {
         // Use special configuration in order to run several nodes on one computer

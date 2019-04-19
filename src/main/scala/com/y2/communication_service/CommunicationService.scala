@@ -63,9 +63,9 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
     case ClientAnswer =>
       client = sender()
       log.info("A client answered. Requesting training data.")
-      client ! RequestData()
+      client ! TrainingDataRequest()
 
-    case trainingData: TrainingData =>
+    case trainingData: TrainingDataAnswer =>
       data.enqueue((trainingData.data, trainingData.reference))
       log.info("Received data with reference value " + trainingData.reference)
   }

@@ -8,14 +8,14 @@ object ClientCommunicationMessage {
   /**
     * Sent by nodes to request data to process to the client.
     */
-  final case class RequestData()
+  final case class TrainingDataRequest()
 
   /**
     * Contains the training data.
     * @param data the input data
     * @param reference the expected output
     */
-  final case class TrainingData(data: Array[Byte], reference: String)
+  final case class TrainingDataAnswer(data: Array[Byte], reference: String)
 
   /**
     * Sent by node to clients to retrieve their ActorRef.
