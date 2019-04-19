@@ -2,7 +2,7 @@ package com.y2.client_service
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.cluster.{Cluster, ClusterEvent}
-import com.y2.messages.ClientCommunicationMessage.{AudioData, AudioTranscript, ClientAnswer, ClientRequest, RequestData}
+import com.y2.messages.ClientCommunicationMessage.{TrainingData, ClientAnswer, ClientRequest, RequestData}
 import java.io.File
 
 import scala.io.Source
@@ -82,8 +82,7 @@ class ClientService extends Actor with ActorLogging with MessageSequence {
     val nextAudioToSend = currentlyProcessed.head
     currentlyProcessed = currentlyProcessed.drop(1)
     val audioByteArray = Files.readAllBytes(Paths.get("LibriSpeech", nextAudioToSend._1 + ".flac"))
-    sendChunked(to, AudioData(audioByteArray))
-    to ! AudioTranscript(nextAudioToSend._2)
+    sendChunked(to, TrainingData(audioByteArray, nextAudioToSend._2))
   }
 
   /**
