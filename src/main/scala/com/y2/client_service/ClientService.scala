@@ -1,12 +1,14 @@
 package com.y2.client_service
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
-import akka.cluster.Cluster
-import com.y2.messages.ClientCommunicationMessage.{AudioData, AudioTranscript, RequestData, ClientRequest, ClientAnswer}
+import akka.cluster.{Cluster, ClusterEvent}
+import com.y2.messages.ClientCommunicationMessage.{AudioData, AudioTranscript, ClientAnswer, ClientRequest, RequestData}
 import java.io.File
 
 import scala.io.Source
 import java.nio.file.{Files, Paths}
+
+import akka.cluster.ClusterEvent.MemberUp
 
 class ClientService extends Actor with ActorLogging with MessageSequence {
 
@@ -35,7 +37,11 @@ class ClientService extends Actor with ActorLogging with MessageSequence {
     * We use cluster bootstrap that automatically tries to discover nodes of the cluster and create a new cluster if
     * none was found.
     */
-  override def preStart(): Unit = toBeProcessedFileNames = getListOfFiles("/LibriSpeech").toSet
+  override def preStart(): Unit = {
+    // Subscribe to MemberUp messages to perform setup actions when the node joins the cluster
+    cluster.subscribe(self, ClusterEvent.InitialStateAsEvents, classOf[MemberUp])
+    toBeProcessedFileNames = getListOfFiles("/LibriSpeech").toSet
+  }
 
   /**
     * Unsubscribe from the cluster when stopping the actor.
@@ -47,11 +53,17 @@ class ClientService extends Actor with ActorLogging with MessageSequence {
     * @return a function that handles the received messages.
     */
   def receive = {
+    case MemberUp(m) => log.info("Member up!")
     case ClientRequest => {
-      sender() ! ClientAnswer
+      log.info("Received client request")
+      sender ! ClientAnswer
     }
-    case RequestData => {
-      sendMessageTo(sender())
+    case RequestData() => {
+      log.info("Received data request")
+      sendMessageTo(sender)
+    }
+    case m => {
+      log.info("Received random message: " + m)
     }
   }
 
@@ -69,7 +81,7 @@ class ClientService extends Actor with ActorLogging with MessageSequence {
     }
     val nextAudioToSend = currentlyProcessed.head
     currentlyProcessed = currentlyProcessed.drop(1)
-    val audioByteArray = Files.readAllBytes(Paths.get(nextAudioToSend._1))
+    val audioByteArray = Files.readAllBytes(Paths.get("LibriSpeech", nextAudioToSend._1 + ".flac"))
     sendChunked(to, AudioData(audioByteArray))
     to ! AudioTranscript(nextAudioToSend._2)
   }
@@ -98,7 +110,7 @@ class ClientService extends Actor with ActorLogging with MessageSequence {
         line <- Source.fromFile(filename).getLines()
         split = line.split(" ", 2)
         name = split.head
-        sentence = split(2)
+        sentence = split(1)
       } yield (name -> sentence)
     pairs.toMap
   }
