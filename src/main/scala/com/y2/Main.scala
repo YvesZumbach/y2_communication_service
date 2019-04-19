@@ -1,7 +1,7 @@
 package com.y2
 
 import akka.actor.ActorSystem
-import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.LazyLogging
 import com.y2.config.Config
 import com.y2.runtype.{CLIENT, NODE, NULL, Node}
 import scopt.OptionParser
@@ -11,9 +11,7 @@ import scopt.OptionParser
   */
 class Main { }
 
-object Main {
-
-  val log = Logger(classOf[Main])
+object Main extends LazyLogging {
 
   implicit val system = ActorSystem("y2")
 
@@ -43,7 +41,7 @@ object Main {
         case NODE => node(config)
       }
     } getOrElse {
-      log.error("Invalid arguments! Not doing anything.")
+      logger.error("Invalid arguments! Not doing anything.")
     }
   }
 
