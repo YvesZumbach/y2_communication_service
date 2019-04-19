@@ -15,8 +15,6 @@ class CommunicationService extends Actor with ActorLogging {
     */
   private val cluster = Cluster(context.system)
 
-  implicit val system: ActorSystem = ActorSystem.create("Appka")
-
   /**
     * When the actor starts it tries to join the cluster.
     * We use cluster bootstrap that automatically tries to discover nodes of the cluster and create a new cluster if
@@ -31,7 +29,6 @@ class CommunicationService extends Actor with ActorLogging {
 
     // Starting the bootstrap process needs to be done explicitly
     ClusterBootstrap(context.system).start()
-    log.info("Worker connected to the cluster.")
 
     // Subscribe to MemberUp messages to perform setup actions when the node joins the cluster
     cluster.subscribe(self, classOf[MemberUp])
