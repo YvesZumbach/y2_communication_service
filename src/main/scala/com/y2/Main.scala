@@ -3,7 +3,7 @@ package com.y2
 import akka.actor.{ActorRef, ActorSystem, Props}
 import com.typesafe.scalalogging.LazyLogging
 import com.y2.client_service.ClientService
-import com.y2.config.Config
+import com.y2.config.Y2Config
 import com.y2.runtype.{CLIENT, NODE, NULL, Node}
 import scopt.OptionParser
 
@@ -14,7 +14,7 @@ class Main { }
 
 object Main extends LazyLogging {
 
-  val parser = new OptionParser[Config]("y2") {
+  val parser = new OptionParser[Y2Config]("y2") {
     head("y2", "v1.0")
 
     note("The base command to handle a y2 cluster.")
@@ -38,8 +38,7 @@ object Main extends LazyLogging {
     * @param args The command line arguments
     */
   def main(args: Array[String]): Unit = {
-    parser.parse(args, Config()) map { config =>
-      implicit val system = ActorSystem("y2")
+    parser.parse(args, Y2Config()) map { config =>
       config.runType match {
         case CLIENT => client()
         case NODE => node(config)
@@ -60,16 +59,17 @@ object Main extends LazyLogging {
   /**
     * Start the y2 client.
     */
-  def client()(implicit system: ActorSystem) = {
+  def client() = {
     println("Running the client")
-    val clientService: ActorRef = system.actorOf(Props[ClientService], "client")
   }
 
   /**
     * Start an y2 node.
     * @param c
     */
-  def node(c: Config)(implicit system: ActorSystem): Unit = {
-    new Node(c)
+  def node(c: Y2Config): Unit = {
+    new Node(c, 1)
+    new Node(c, 2)
+    new Node(c, 3)
   }
 }
