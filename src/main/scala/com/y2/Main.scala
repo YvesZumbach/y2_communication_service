@@ -13,8 +13,6 @@ class Main { }
 
 object Main extends LazyLogging {
 
-  implicit val system = ActorSystem("y2")
-
   val parser = new OptionParser[Config]("y2") {
     head("y2", "v1.0")
 
@@ -40,6 +38,7 @@ object Main extends LazyLogging {
     */
   def main(args: Array[String]): Unit = {
     parser.parse(args, Config()) map { config =>
+      implicit val system = ActorSystem("y2")
       config.runType match {
         case CLIENT => client()
         case NODE => node(config)
@@ -60,7 +59,7 @@ object Main extends LazyLogging {
   /**
     * Start the y2 client.
     */
-  def client() = {
+  def client()(implicit system: ActorSystem) = {
     println("Running the client")
   }
 
@@ -68,7 +67,7 @@ object Main extends LazyLogging {
     * Start an y2 node.
     * @param c
     */
-  def node(c: Config): Unit = {
+  def node(c: Config)(implicit system: ActorSystem): Unit = {
     new Node(c)
   }
 }
