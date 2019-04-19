@@ -5,7 +5,6 @@ import akka.cluster.ClusterEvent._
 import akka.cluster.{Cluster, ClusterEvent}
 import com.y2.client_service.MessageSequence
 import com.y2.messages.ClientCommunicationMessage._
-import scala.collection.mutable.Queue
 
 /**
   * Service that handles communication in the y2 cluster.
@@ -23,14 +22,13 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
   private var client: ActorRef = _
 
   /**
-    * Contains the status of the CommunicationService
-    */
-  private var status: CommunicationServiceStatus = NoClient
-
-  /**
     * Received data
     */
-  private var data = Queue[(Array[Byte], String)]()
+  private var data = scala.collection.mutable.Queue[(Array[Byte], String)]()
+
+  /**
+    * Data uncompletely received.
+    */
 
   /**
     * When the actor starts it tries to join the cluster.
@@ -64,15 +62,12 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
 
     case ClientAnswer =>
       client = sender()
-      status = ClientSetup
       log.info("A client answered. Requesting training data.")
       client ! RequestData()
 
-    // Receive the audoi transcript for a particular data
-    case audioTranscript: AudioTranscript =>
-      log.info("Received transcript: " + audioTranscript.text)
-
-    case audioData: AudioData => ???
+    case trainingData: TrainingData =>
+      data.enqueue((trainingData.data, trainingData.reference))
+      log.info("Received data with reference value " + trainingData.reference)
   }
 
 

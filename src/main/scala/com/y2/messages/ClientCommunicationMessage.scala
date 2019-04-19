@@ -11,16 +11,11 @@ object ClientCommunicationMessage {
   final case class RequestData()
 
   /**
-    * Contains the transcript of an audio file.
-    * @param text the transcript.
+    * Contains the training data.
+    * @param data the input data
+    * @param reference the expected output
     */
-  final case class AudioTranscript(text: String, uuid: String)
-
-  /**
-    * Contains the actual audio data.
-    * @param data audio data.
-    */
-  final case class AudioData(data: Array[Byte], uuid: String)
+  final case class TrainingData(data: Array[Byte], reference: String)
 
   /**
     * Sent by node to clients to retrieve their ActorRef.
