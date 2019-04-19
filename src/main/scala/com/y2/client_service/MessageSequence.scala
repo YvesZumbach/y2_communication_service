@@ -55,9 +55,9 @@ object MessageSequence {
 trait MessageSequence { this: Actor with ActorLogging =>
   import MessageSequence._
 
-  private implicit val ec: ExecutionContext = context.system.dispatcher
-  private val serialization = SerializationExtension(context.system)
   private var inFlight = Map.empty[String, Progress]
+  private val serialization = SerializationExtension(context.system)
+  private implicit val ec: ExecutionContext = context.system.dispatcher
   val chunkSize = calcChunkSize
 
   /**

@@ -1,7 +1,8 @@
 package com.y2
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorSystem, Props}
 import com.typesafe.scalalogging.LazyLogging
+import com.y2.client_service.ClientService
 import com.y2.config.Config
 import com.y2.runtype.{CLIENT, NODE, NULL, Node}
 import scopt.OptionParser
@@ -61,6 +62,7 @@ object Main extends LazyLogging {
     */
   def client()(implicit system: ActorSystem) = {
     println("Running the client")
+    val clientService: ActorRef = system.actorOf(Props[ClientService], "client")
   }
 
   /**
