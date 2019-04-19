@@ -11,11 +11,10 @@ import com.y2.config.Y2Config
   * Run a node.
   * @param config the configuration to apply to the node.
   */
-class Node(val config: Y2Config) {
-
-  // Use special configuration in order to run several nodes on one computer
+class Y2Node(val config: Y2Config) {
   if (config.local) {
-    val index = Node.index.incrementAndGet()
+    // Use special configuration in order to run several nodes on one computer
+    val index = Y2Node.index.incrementAndGet()
     val config: Config = ConfigFactory.parseString(s"""
       akka.remote.artery.canonical.hostname = "127.0.0.$index"
       akka.management.http.hostname = "127.0.0.$index"
@@ -30,6 +29,6 @@ class Node(val config: Y2Config) {
   }
 }
 
-object Node {
+object Y2Node {
   var index = new AtomicInteger()
 }
