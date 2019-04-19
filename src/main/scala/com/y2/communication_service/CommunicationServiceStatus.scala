@@ -1,0 +1,5 @@
+package com.y2.communication_service
+
+sealed trait CommunicationServiceStatus
+case object NoClient extends CommunicationServiceStatus
+case object ClientSetup extends CommunicationServiceStatus

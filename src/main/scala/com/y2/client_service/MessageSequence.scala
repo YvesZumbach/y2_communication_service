@@ -1,5 +1,9 @@
 package com.y2.client_service
 
+/*
+  Found at https://gist.github.com/ericacm/7947424
+ */
+
 import akka.actor.{Cancellable, ActorLogging, ActorRef, Actor}
 import java.util
 import akka.serialization.SerializationExtension
@@ -157,7 +161,7 @@ trait MessageSequence { this: Actor with ActorLogging =>
     maxFrameSize - baseChunkBytes.length
   }
 
-  private def logMissingInFlight(id: String) =
+  private def logMissingInFlight(id: String): Unit =
     log.error(s"Unexpected chunking $id.  Currently in-flight: ${inFlight.keys}")
 
   private def scheduleTimeout(id: String): Cancellable =

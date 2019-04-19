@@ -2,7 +2,7 @@ package com.y2
 
 import com.y2.config.Y2Config
 import com.y2.runtype.Y2Node
-import com.y2.runtype.RunTypes.{RunType, Client, Node, Null}
+import com.y2.runtype.{Client, Node, Null}
 import scopt.OptionParser
 
 /**

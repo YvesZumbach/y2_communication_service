@@ -20,11 +20,11 @@ class Y2Node(val config: Y2Config) {
       akka.management.http.hostname = "127.0.0.$index"
       akka.remote.artery.canonical.port = 255$index
     """).withFallback(ConfigFactory.load())
-    val system = ActorSystem("local-cluster", config)
+    val system = ActorSystem("y2", config)
     val communicationService: ActorRef = system.actorOf(Props[CommunicationService], "communication")
   } else {
     // Use default configuration
-    val system = ActorSystem("local-cluster")
+    val system = ActorSystem("y2")
     val communicationService: ActorRef = system.actorOf(Props[CommunicationService], "communication")
   }
 }

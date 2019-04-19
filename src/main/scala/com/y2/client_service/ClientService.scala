@@ -2,11 +2,9 @@ package com.y2.client_service
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.cluster.Cluster
-import akka.management.cluster.bootstrap.ClusterBootstrap
-import akka.management.scaladsl.AkkaManagement
-import com.y2.messages.ClientCommunicationMessage.{RequestData, AudioTranscript}
-
+import com.y2.messages.ClientCommunicationMessage.{AudioData, AudioTranscript, RequestData}
 import java.io.File
+
 import scala.io.Source
 import java.nio.file.{Files, Paths}
 
@@ -37,18 +35,7 @@ class ClientService extends Actor with ActorLogging with MessageSequence {
     * We use cluster bootstrap that automatically tries to discover nodes of the cluster and create a new cluster if
     * none was found.
     */
-  override def preStart(): Unit = {
-    log.info("Client started.")
-    log.info("Processing data.")
-
-    toBeProcessedFileNames = getListOfFiles("/LibriSpeech").toSet
-
-    // Akka Management hosts the HTTP routes used by bootstrap
-    AkkaManagement(context.system).start()
-
-    // Starting the bootstrap process needs to be done explicitly
-    ClusterBootstrap(context.system).start()
-  }
+  override def preStart(): Unit = toBeProcessedFileNames = getListOfFiles("/LibriSpeech").toSet
 
   /**
     * Unsubscribe from the cluster when stopping the actor.
@@ -60,7 +47,7 @@ class ClientService extends Actor with ActorLogging with MessageSequence {
     * @return a function that handles the received messages.
     */
   def receive = {
-    case RequestData() => {
+    case RequestData => {
       sendMessageTo(sender())
     }
   }
@@ -80,7 +67,7 @@ class ClientService extends Actor with ActorLogging with MessageSequence {
     val nextAudioToSend = currentlyProcessed.head
     currentlyProcessed = currentlyProcessed.drop(1)
     val audioByteArray = Files.readAllBytes(Paths.get(nextAudioToSend._1))
-    sendChunked(to, audioByteArray)
+    sendChunked(to, AudioData(audioByteArray))
     to ! AudioTranscript(nextAudioToSend._2)
   }
 

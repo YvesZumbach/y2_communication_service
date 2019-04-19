@@ -1,19 +1,35 @@
 package com.y2.communication_service
 
-import akka.actor.{Actor, ActorLogging}
+import akka.actor.{Actor, ActorLogging, ActorRef, RootActorPath}
 import akka.cluster.ClusterEvent._
-import akka.cluster.Cluster
-import akka.management.cluster.bootstrap.ClusterBootstrap
-import akka.management.scaladsl.AkkaManagement
+import akka.cluster.{Cluster, ClusterEvent}
+import com.y2.client_service.MessageSequence
+import com.y2.messages.ClientCommunicationMessage._
 
 /**
   * Service that handles communication in the y2 cluster.
   */
-class CommunicationService extends Actor with ActorLogging {
+class CommunicationService extends Actor with ActorLogging with MessageSequence {
   /**
     * The y2 cluster.
     */
   private val cluster = Cluster(context.system)
+
+  /**
+    * The client from which to get instructions to execute.
+    * Null, when no client ever responded.
+    */
+  private var client: ActorRef = _
+
+  /**
+    * Contains the status of the CommunicationService
+    */
+  private var status: CommunicationServiceStatus = NoClient
+
+  /**
+    * Received data
+    */
+  private var data: List[Int] = _
 
   /**
     * When the actor starts it tries to join the cluster.
@@ -21,17 +37,8 @@ class CommunicationService extends Actor with ActorLogging {
     * none was found.
     */
   override def preStart(): Unit = {
-    log.info("Worker started.")
-    log.info("Trying to connect to the cluster.")
-
-    // Akka Management hosts the HTTP routes used by bootstrap
-    AkkaManagement(context.system).start()
-
-    // Starting the bootstrap process needs to be done explicitly
-    ClusterBootstrap(context.system).start()
-
     // Subscribe to MemberUp messages to perform setup actions when the node joins the cluster
-    cluster.subscribe(self, classOf[MemberUp])
+    cluster.subscribe(self, ClusterEvent.InitialStateAsEvents, classOf[MemberUp])
   }
 
   /**
@@ -44,14 +51,38 @@ class CommunicationService extends Actor with ActorLogging {
     * @return a function that handles the received messages.
     */
   @Override
-  def receive = {
-    case MemberUp(m) => log.info(m + " is up.")
-  }
+  def receive = receiveChunks orElse {
 
-//  def register(member: Member): Unit =
-//    if (member.hasRole("frontend"))
-//      context.actorSelection(RootActorPath(member.address) / "user" / "frontend") !
-//        BackendRegistration
-//}
+    // Ask to connect to a client if this node does not already have one
+    case MemberUp(m) => {
+      if (client == null && m.hasRole("client")) {
+        // Send a message to all clients connected to the cluster
+        context.actorSelection(RootActorPath(m.address) / "user" / "client") ! ClientRequest
+      }
+      log.info(m + " is up.")
+    }
+
+    // Store the client that answered
+    case clientAnswer: ClientAnswer => {
+      if (client == null) {
+        // A client answered
+        log.info("Found a client.")
+        client = sender()
+        status = ClientSetup
+
+        // Ask it for training data
+        client ! RequestData()
+      } else {
+        log.debug("Additional client answered.")
+      }
+    }
+
+    // Receive the audoi transcript for a particular data
+    case audioTranscript: AudioTranscript => {
+      log.info("Recieved transcript: " + audioTranscript.text)
+    }
+
+    case audioData: AudioData => ???
+  }
 
 }
