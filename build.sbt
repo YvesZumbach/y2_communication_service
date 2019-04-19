@@ -1,4 +1,4 @@
-name := "akka-quickstart-scala"
+name := "y2"
 
 version := "1.0"
 
@@ -13,5 +13,6 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster" % "2.5.22",
+  "org.zeromq" % "jeromq" % "0.5.1",
   "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 )

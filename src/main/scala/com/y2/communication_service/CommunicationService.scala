@@ -3,8 +3,11 @@ package com.y2.communication_service
 import akka.actor.{Actor, ActorLogging, ActorRef, RootActorPath, Terminated}
 import akka.cluster.ClusterEvent._
 import akka.cluster.{Cluster, ClusterEvent}
-import com.y2.client_service.MessageSequence
 import com.y2.messages.ClientCommunicationMessage._
+import com.y2.messages.MessageSequence
+import org.zeromq.ZContext
+import org.zeromq.SocketType
+
 
 /**
   * Service that handles communication in the y2 cluster.
@@ -14,6 +17,14 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
     * The y2 cluster.
     */
   private val cluster = Cluster(context.system)
+
+  /**
+    * The ZeroMQ context.
+    */
+  private val zcontext: ZContext = new ZContext()
+
+  private val workerServiceConnection = zcontext.createSocket(SocketType.PUB)
+  workerServiceConnection.bind("inproc://*:5563")
 
   /**
     * The client from which to get instructions to execute.
@@ -70,8 +81,10 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
       client ! TrainingDataRequest()
 
     case trainingData: TrainingDataAnswer =>
-      data.enqueue((trainingData.data, trainingData.reference))
-      log.info("Received data with reference value " + trainingData.reference)
+      log.info("Received data with reference value " + trainingData.reference
+        + ". Sending data to the local worker service.")
+      workerServiceConnection.send(trainingData.reference)
+      // TODO Also send the audio information
   }
 
 

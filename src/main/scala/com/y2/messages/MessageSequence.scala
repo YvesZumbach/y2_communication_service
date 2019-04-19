@@ -1,17 +1,19 @@
-package com.y2.client_service
+package com.y2.messages
 
 /*
   Found at https://gist.github.com/ericacm/7947424
  */
 
-import akka.actor.{Cancellable, ActorLogging, ActorRef, Actor}
 import java.util
+import java.util.UUID
+
+import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable}
 import akka.serialization.SerializationExtension
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.util.{Try, Failure, Success}
 import scala.language.existentials
-import java.util.UUID
+import scala.util.{Failure, Success, Try}
 
 object MessageSequence {
   val MaxFrameSizePropName = "akka.remote.netty.tcp.maximum-frame-size"

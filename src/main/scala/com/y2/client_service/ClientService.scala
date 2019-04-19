@@ -2,13 +2,14 @@ package com.y2.client_service
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.cluster.{Cluster, ClusterEvent}
-import com.y2.messages.ClientCommunicationMessage.{TrainingDataAnswer, ClientAnswer, ClientRequest, TrainingDataRequest}
+import com.y2.messages.ClientCommunicationMessage.{ClientAnswer, ClientRequest, TrainingDataAnswer, TrainingDataRequest}
 import java.io.File
 
 import scala.io.Source
 import java.nio.file.{Files, Paths}
 
 import akka.cluster.ClusterEvent.MemberUp
+import com.y2.messages.MessageSequence
 
 class ClientService extends Actor with ActorLogging with MessageSequence {
 
