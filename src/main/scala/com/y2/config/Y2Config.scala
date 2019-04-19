@@ -1,8 +1,8 @@
 package com.y2.config
 
-import com.y2.runtype.{NULL, Runtype}
+import com.y2.runtype.{Null, RunType}
 
 case class Y2Config(
-                   runType: Runtype = NULL,
-                   local: Boolean = false
+                     runType: Runtype = Null,
+                     local: Boolean = false
                  )

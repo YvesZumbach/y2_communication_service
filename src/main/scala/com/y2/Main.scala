@@ -2,7 +2,7 @@ package com.y2
 
 import com.typesafe.scalalogging.LazyLogging
 import com.y2.config.Y2Config
-import com.y2.runtype.{CLIENT, NODE, NULL, Node}
+import com.y2.runtype.{RunType, Y2Node}
 import scopt.OptionParser
 
 /**
@@ -19,11 +19,11 @@ object Main extends LazyLogging {
 
     cmd("client")
       .text("An y2 cluster entry point, also known as 'a client'.")
-      .action { (_, c) => c.copy(runType = CLIENT) }
+      .action { (_, c) => c.copy(runType = RunType.Client) }
 
     cmd("node")
       .text("An y2 cluster work-horse, also known as 'a node'.")
-      .action { (_, c) => c.copy(runType = NODE) }
+      .action { (_, c) => c.copy(runType = RunType.Node) }
       .children(
         opt[Boolean]("local")
           .abbr("l")
@@ -32,7 +32,7 @@ object Main extends LazyLogging {
       )
 
     checkConfig(c => c.runType match {
-      case NULL => failure("You must specify a subcommand.")
+      case RunType.Null => failure("You must specify a subcommand.")
       case _ => success
     })
   }
@@ -44,9 +44,9 @@ object Main extends LazyLogging {
   def main(args: Array[String]): Unit = {
     parser.parse(args, Y2Config()) map { config =>
       config.runType match {
-        case CLIENT => client()
-        case NODE => node(config)
-        case NULL => fail()
+        case RunType.Client => client()
+        case RunType.Node => node(config)
+        case RunType.Null => fail()
       }
     } getOrElse {
       fail()
@@ -73,11 +73,11 @@ object Main extends LazyLogging {
     */
   def node(c: Y2Config): Unit = {
     if (c.local) {
-      new Node(c)
-      new Node(c)
-      new Node(c)
+      new Y2Node(c)
+      new Y2Node(c)
+      new Y2Node(c)
     } else {
-      new Node(c)
+      new Y2Node(c)
     }
   }
 }
