@@ -2,7 +2,7 @@ package com.y2.client_service
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.cluster.Cluster
-import com.y2.messages.ClientCommunicationMessage.{AudioData, AudioTranscript, RequestData}
+import com.y2.messages.ClientCommunicationMessage.{AudioData, AudioTranscript, RequestData, ClientRequest, ClientAnswer}
 import java.io.File
 
 import scala.io.Source
@@ -47,6 +47,9 @@ class ClientService extends Actor with ActorLogging with MessageSequence {
     * @return a function that handles the received messages.
     */
   def receive = {
+    case ClientRequest => {
+      sender() ! ClientAnswer
+    }
     case RequestData => {
       sendMessageTo(sender())
     }
