@@ -1,5 +1,8 @@
 package com.y2
 
+import akka.actor.{ActorRef, ActorSystem, Props}
+import com.typesafe.config.{Config, ConfigFactory}
+import com.y2.communication_service.CommunicationService
 import com.y2.config.Y2Config
 import com.y2.runtype.Y2Node
 import com.y2.runtype.{Client, Node, Null}
@@ -29,6 +32,9 @@ object Main {
           .abbr("l")
           .action((x, c) => c.copy(local = x))
           .text("if true, a local cluster of three nodes will be started, otherwise, start just on node."),
+        opt[Int]("localNodeCount")
+          .action((x, c) => c.copy(localNodeCount = x))
+          .text("the number of local node to run.")
       )
 
     checkConfig(c => c.runType match {
@@ -42,14 +48,16 @@ object Main {
     * @param args The command line arguments
     */
   def main(args: Array[String]): Unit = {
-    parser.parse(args, Y2Config()) map { config =>
-      config.runType match {
-        case Client => client()
-        case Node => node(config)
-        case Null => fail()
+    val config = parser.parse(args, Y2Config())
+    config match {
+      case None => fail()
+      case Some(c) => {
+        c.runType match {
+          case Null => fail()
+          case Client => client()
+          case Node => node(c)
+        }
       }
-    } getOrElse {
-      fail()
     }
   }
 
@@ -57,6 +65,7 @@ object Main {
     * Executed when invalid arguments are received.
     */
   def fail(): Unit = {
+    println("[ERROR] Invalid argument received.")
   }
 
   /**
@@ -72,11 +81,20 @@ object Main {
     */
   def node(c: Y2Config): Unit = {
     if (c.local) {
-      new Y2Node(c)
-      new Y2Node(c)
-      new Y2Node(c)
+      for (i <- 1 to c.localNodeCount) {
+        // Use special configuration in order to run several nodes on one computer
+        val config: Config = ConfigFactory.parseString(s"""
+          akka.remote.artery.canonical.hostname = "127.0.0.$i"
+          akka.management.http.hostname = "127.0.0.$i"
+          akka.remote.artery.canonical.port = 255$i
+        """).withFallback(ConfigFactory.load())
+        val system = ActorSystem("y2", config)
+        system.actorOf(Props[CommunicationService], "communication")
+      }
     } else {
-      new Y2Node(c)
+      // Use default configuration
+      val system = ActorSystem("y2")
+      system.actorOf(Props[CommunicationService], "communication")
     }
   }
 }
