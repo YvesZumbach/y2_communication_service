@@ -1,8 +1,8 @@
 package com.y2
 
-import com.typesafe.scalalogging.LazyLogging
 import com.y2.config.Y2Config
-import com.y2.runtype.{RunType, Y2Node}
+import com.y2.runtype.Y2Node
+import com.y2.runtype.RunTypes.{RunType, Client, Node, Null}
 import scopt.OptionParser
 
 /**
@@ -10,7 +10,7 @@ import scopt.OptionParser
   */
 class Main { }
 
-object Main extends LazyLogging {
+object Main {
 
   val parser = new OptionParser[Y2Config]("y2") {
     head("y2", "v1.0")
@@ -19,11 +19,11 @@ object Main extends LazyLogging {
 
     cmd("client")
       .text("An y2 cluster entry point, also known as 'a client'.")
-      .action { (_, c) => c.copy(runType = RunType.Client) }
+      .action { (_, c) => c.copy(runType = Client) }
 
     cmd("node")
       .text("An y2 cluster work-horse, also known as 'a node'.")
-      .action { (_, c) => c.copy(runType = RunType.Node) }
+      .action { (_, c) => c.copy(runType = Node) }
       .children(
         opt[Boolean]("local")
           .abbr("l")
@@ -32,7 +32,7 @@ object Main extends LazyLogging {
       )
 
     checkConfig(c => c.runType match {
-      case RunType.Null => failure("You must specify a subcommand.")
+      case Null => failure("You must specify a subcommand.")
       case _ => success
     })
   }
@@ -44,9 +44,9 @@ object Main extends LazyLogging {
   def main(args: Array[String]): Unit = {
     parser.parse(args, Y2Config()) map { config =>
       config.runType match {
-        case RunType.Client => client()
-        case RunType.Node => node(config)
-        case RunType.Null => fail()
+        case Client => client()
+        case Node => node(config)
+        case Null => fail()
       }
     } getOrElse {
       fail()
@@ -57,7 +57,6 @@ object Main extends LazyLogging {
     * Executed when invalid arguments are received.
     */
   def fail(): Unit = {
-    logger.error("Invalid arguments! Not doing anything.")
   }
 
   /**
