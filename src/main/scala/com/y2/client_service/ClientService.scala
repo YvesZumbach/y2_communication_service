@@ -11,7 +11,7 @@ import java.io.File
 import scala.io.Source
 import java.nio.file.{Files, Paths}
 
-class ClientService extends MessageSequence with Actor with ActorLogging {
+class ClientService extends Actor with ActorLogging with MessageSequence {
 
   /**
     * The y2 cluster.
@@ -33,8 +33,6 @@ class ClientService extends MessageSequence with Actor with ActorLogging {
     */
   private var currentlyProcessedName : String = ""
 
-  implicit val system: ActorSystem = ActorSystem.create("Appka")
-
   /**
     * When the actor starts it tries to join the cluster.
     * We use cluster bootstrap that automatically tries to discover nodes of the cluster and create a new cluster if
@@ -44,16 +42,13 @@ class ClientService extends MessageSequence with Actor with ActorLogging {
     log.info("Client started.")
     log.info("Processing data.")
 
-    toBeProcessedFileNames = getListOfFiles("").toSet
+    toBeProcessedFileNames = getListOfFiles("/LibriSpeech").toSet
 
     // Akka Management hosts the HTTP routes used by bootstrap
     AkkaManagement(context.system).start()
 
     // Starting the bootstrap process needs to be done explicitly
     ClusterBootstrap(context.system).start()
-
-    // Subscribe to RequestData messages to perform setup actions when the node joins the cluster
-    cluster.subscribe(self, classOf[RequestData])
   }
 
   /**
@@ -96,7 +91,8 @@ class ClientService extends MessageSequence with Actor with ActorLogging {
     * @return List of file names ending in .txt
     */
   private def getListOfFiles(dir: String): List[String] = {
-    val file = new File(dir)
+    val path = Paths.get("").toAbsolutePath
+    val file = new File(path + dir)
     file.listFiles.filter(_.isFile)
       .filter(_.getName.endsWith(".txt"))
       .map(_.getPath).toList

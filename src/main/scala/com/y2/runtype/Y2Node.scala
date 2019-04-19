@@ -6,9 +6,9 @@ import com.y2.communication_service.CommunicationService
 import com.y2.config.Config
 
 
-class Node(val nodeConfig: Config)(implicit system: ActorSystem) {
+class NodeRun(val nodeConfig: Config)(implicit system: ActorSystem) {
 
-  val log = Logger(classOf[Node])
+  val log = Logger(classOf[NodeRun])
 
   log.info("Starting node...")
 
