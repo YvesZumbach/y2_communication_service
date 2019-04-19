@@ -1,6 +1,6 @@
 package com.y2.communication_service
 
-import akka.actor.{Actor, ActorLogging, ActorRef, RootActorPath}
+import akka.actor.{Actor, ActorLogging, ActorRef, RootActorPath, Terminated}
 import akka.cluster.ClusterEvent._
 import akka.cluster.{Cluster, ClusterEvent}
 import com.y2.client_service.MessageSequence
@@ -27,10 +27,6 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
   private var data = scala.collection.mutable.Queue[(Array[Byte], String)]()
 
   /**
-    * Data uncompletely received.
-    */
-
-  /**
     * When the actor starts it tries to join the cluster.
     * We use cluster bootstrap that automatically tries to discover nodes of the cluster and create a new cluster if
     * none was found.
@@ -38,6 +34,8 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
   override def preStart(): Unit = {
     // Subscribe to MemberUp messages to perform setup actions when the node joins the cluster
     cluster.subscribe(self, ClusterEvent.InitialStateAsEvents, classOf[MemberUp])
+    // Subscribe to MemberRemoved to learn if the connected client went down
+    cluster.subscribe(self, ClusterEvent.InitialStateAsEvents, classOf[MemberRemoved])
   }
 
   /**
@@ -51,16 +49,22 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
     */
   @Override
   def receive: PartialFunction[Any, Unit] = receiveChunks orElse {
-
-    // Ask to connect to a client if this node does not already have one
-    case MemberUp(m) =>
-      log.info(m + " is up.")
-      if (client == null && m.hasRole("client")) {
+    case MemberUp(member) =>
+      log.info(member + " is up.")
+      if (client == null && member.hasRole("client")) {
         log.info("A client is up. Sending a client request.")
-        context.actorSelection(RootActorPath(m.address) / "user" / "client") ! ClientRequest
+        context.actorSelection(RootActorPath(member.address) / "user" / "client") ! ClientRequest
     }
 
+    case Terminated(actor) =>
+      if (actor.equals(client)) {
+        log.info("Client died.")
+        client = null
+      }
+
     case ClientAnswer =>
+      // Watch the client that answered to monitor whether it dies at some point.
+      context.watch(sender())
       client = sender()
       log.info("A client answered. Requesting training data.")
       client ! TrainingDataRequest()
