@@ -1,10 +1,10 @@
 package com.y2
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorSystem, Props}
 import com.typesafe.config.{Config, ConfigFactory}
 import com.y2.communication_service.CommunicationService
 import com.y2.config.Y2Config
-import com.y2.runtype.Y2Node
+import com.y2.messages.ClientCommunicationMessage.ClientAnswer
 import com.y2.runtype.{Client, Node, Null}
 import scopt.OptionParser
 

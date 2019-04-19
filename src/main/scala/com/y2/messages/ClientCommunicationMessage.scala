@@ -1,7 +1,5 @@
 package com.y2.messages
 
-import akka.actor.ActorRef
-
 /**
   * Represent all messages exchanged between the client and the communication service.
   */
@@ -16,13 +14,13 @@ object ClientCommunicationMessage {
     * Contains the transcript of an audio file.
     * @param text the transcript.
     */
-  final case class AudioTranscript(text: String)
+  final case class AudioTranscript(text: String, uuid: String)
 
   /**
     * Contains the actual audio data.
     * @param data audio data.
     */
-  final case class AudioData(data: Array[Byte])
+  final case class AudioData(data: Array[Byte], uuid: String)
 
   /**
     * Sent by node to clients to retrieve their ActorRef.

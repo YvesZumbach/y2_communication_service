@@ -5,6 +5,7 @@ import akka.cluster.ClusterEvent._
 import akka.cluster.{Cluster, ClusterEvent}
 import com.y2.client_service.MessageSequence
 import com.y2.messages.ClientCommunicationMessage._
+import scala.collection.mutable.Queue
 
 /**
   * Service that handles communication in the y2 cluster.
@@ -29,7 +30,7 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
   /**
     * Received data
     */
-  private var data: List[Int] = _
+  private var data = Queue[(Array[Byte], String)]()
 
   /**
     * When the actor starts it tries to join the cluster.
@@ -51,38 +52,29 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
     * @return a function that handles the received messages.
     */
   @Override
-  def receive = receiveChunks orElse {
+  def receive: PartialFunction[Any, Unit] = receiveChunks orElse {
 
     // Ask to connect to a client if this node does not already have one
-    case MemberUp(m) => {
-      if (client == null && m.hasRole("client")) {
-        // Send a message to all clients connected to the cluster
-        context.actorSelection(RootActorPath(m.address) / "user" / "client") ! ClientRequest
-      }
+    case MemberUp(m) =>
       log.info(m + " is up.")
+      if (client == null && m.hasRole("client")) {
+        log.info("A client is up. Sending a client request.")
+        context.actorSelection(RootActorPath(m.address) / "user" / "client") ! ClientRequest
     }
 
-    // Store the client that answered
-    case clientAnswer: ClientAnswer => {
-      if (client == null) {
-        // A client answered
-        log.info("Found a client.")
-        client = sender()
-        status = ClientSetup
-
-        // Ask it for training data
-        client ! RequestData()
-      } else {
-        log.debug("Additional client answered.")
-      }
-    }
+    case ClientAnswer =>
+      client = sender()
+      status = ClientSetup
+      log.info("A client answered. Requesting training data.")
+      client ! RequestData()
 
     // Receive the audoi transcript for a particular data
-    case audioTranscript: AudioTranscript => {
-      log.info("Recieved transcript: " + audioTranscript.text)
-    }
+    case audioTranscript: AudioTranscript =>
+      log.info("Received transcript: " + audioTranscript.text)
 
     case audioData: AudioData => ???
   }
+
+
 
 }
