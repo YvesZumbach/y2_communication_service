@@ -1,10 +1,8 @@
 package com.y2
 
-import akka.actor.{ActorRef, ActorSystem, Props}
 import com.typesafe.scalalogging.LazyLogging
-import com.y2.client_service.ClientService
-import com.y2.config.Config
-import com.y2.runtype.{CLIENT, NODE, NULL, Node}
+import com.y2.config.Y2Config
+import com.y2.runtype.{RunType, Y2Node}
 import scopt.OptionParser
 
 /**
@@ -14,21 +12,27 @@ class Main { }
 
 object Main extends LazyLogging {
 
-  val parser = new OptionParser[Config]("y2") {
+  val parser = new OptionParser[Y2Config]("y2") {
     head("y2", "v1.0")
 
     note("The base command to handle a y2 cluster.")
 
     cmd("client")
       .text("An y2 cluster entry point, also known as 'a client'.")
-      .action { (_, c) => c.copy(runType = CLIENT) }
+      .action { (_, c) => c.copy(runType = RunType.Client) }
 
     cmd("node")
       .text("An y2 cluster work-horse, also known as 'a node'.")
-      .action { (_, c) => c.copy(runType = NODE) }
+      .action { (_, c) => c.copy(runType = RunType.Node) }
+      .children(
+        opt[Boolean]("local")
+          .abbr("l")
+          .action((x, c) => c.copy(local = x))
+          .text("if true, a local cluster of three nodes will be started, otherwise, start just on node."),
+      )
 
     checkConfig(c => c.runType match {
-      case NULL => failure("You must specify a subcommand.")
+      case RunType.Null => failure("You must specify a subcommand.")
       case _ => success
     })
   }
@@ -38,12 +42,11 @@ object Main extends LazyLogging {
     * @param args The command line arguments
     */
   def main(args: Array[String]): Unit = {
-    parser.parse(args, Config()) map { config =>
-      implicit val system = ActorSystem("y2")
+    parser.parse(args, Y2Config()) map { config =>
       config.runType match {
-        case CLIENT => client()
-        case NODE => node(config)
-        case NULL => fail()
+        case RunType.Client => client()
+        case RunType.Node => node(config)
+        case RunType.Null => fail()
       }
     } getOrElse {
       fail()
@@ -60,16 +63,21 @@ object Main extends LazyLogging {
   /**
     * Start the y2 client.
     */
-  def client()(implicit system: ActorSystem) = {
+  def client() = {
     println("Running the client")
-    val clientService: ActorRef = system.actorOf(Props[ClientService], "client")
   }
 
   /**
     * Start an y2 node.
     * @param c
     */
-  def node(c: Config)(implicit system: ActorSystem): Unit = {
-    new Node(c)
+  def node(c: Y2Config): Unit = {
+    if (c.local) {
+      new Y2Node(c)
+      new Y2Node(c)
+      new Y2Node(c)
+    } else {
+      new Y2Node(c)
+    }
   }
 }

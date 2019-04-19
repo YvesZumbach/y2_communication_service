@@ -4,7 +4,6 @@ import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.cluster.Cluster
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
-import akka.actor.ActorSystem
 import com.y2.messages.ClientCommunicationMessage.{RequestData, AudioTranscript}
 
 import java.io.File

@@ -1,6 +1,6 @@
 package com.y2.communication_service
 
-import akka.actor.{Actor, ActorLogging, ActorSystem}
+import akka.actor.{Actor, ActorLogging}
 import akka.cluster.ClusterEvent._
 import akka.cluster.Cluster
 import akka.management.cluster.bootstrap.ClusterBootstrap
@@ -14,8 +14,6 @@ class CommunicationService extends Actor with ActorLogging {
     * The y2 cluster.
     */
   private val cluster = Cluster(context.system)
-
-  implicit val system: ActorSystem = ActorSystem.create("Appka")
 
   /**
     * When the actor starts it tries to join the cluster.
@@ -31,7 +29,6 @@ class CommunicationService extends Actor with ActorLogging {
 
     // Starting the bootstrap process needs to be done explicitly
     ClusterBootstrap(context.system).start()
-    log.info("Worker connected to the cluster.")
 
     // Subscribe to MemberUp messages to perform setup actions when the node joins the cluster
     cluster.subscribe(self, classOf[MemberUp])
@@ -48,7 +45,7 @@ class CommunicationService extends Actor with ActorLogging {
     */
   @Override
   def receive = {
-    case MemberUp(m) => println("some memeber is up.")
+    case MemberUp(m) => log.info(m + " is up.")
   }
 
 //  def register(member: Member): Unit =
