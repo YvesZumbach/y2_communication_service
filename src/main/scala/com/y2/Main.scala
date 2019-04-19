@@ -34,21 +34,40 @@ object Main extends LazyLogging {
     })
   }
 
+  /**
+    * main function.
+    * @param args The command line arguments
+    */
   def main(args: Array[String]): Unit = {
     parser.parse(args, Config()) map { config =>
       config.runType match {
         case CLIENT => client()
         case NODE => node(config)
+        case NULL => fail()
       }
     } getOrElse {
-      logger.error("Invalid arguments! Not doing anything.")
+      fail()
     }
   }
 
+  /**
+    * Executed when invalid arguments are received.
+    */
+  def fail(): Unit = {
+    logger.error("Invalid arguments! Not doing anything.")
+  }
+
+  /**
+    * Start the y2 client.
+    */
   def client() = {
     println("Running the client")
   }
 
+  /**
+    * Start an y2 node.
+    * @param c
+    */
   def node(c: Config): Unit = {
     new Node(c)
   }
