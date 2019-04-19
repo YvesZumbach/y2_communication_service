@@ -11,6 +11,7 @@ import scala.io.Source
 import java.nio.file.{Files, Paths}
 
 object ClientService extends MessageSequence with Actor with ActorLogging {
+
   /**
     * The y2 cluster.
     */
