@@ -4,18 +4,19 @@ import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.cluster.Cluster
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
+import akka.actor.ActorSystem
 import com.y2.messages.ClientCommunicationMessage.{RequestData, AudioTranscript}
 
 import java.io.File
 import scala.io.Source
 import java.nio.file.{Files, Paths}
 
-object ClientService extends MessageSequence with Actor with ActorLogging {
+class ClientService extends MessageSequence with Actor with ActorLogging {
 
   /**
     * The y2 cluster.
     */
-  private var cluster = Cluster(context.system)
+  private val cluster = Cluster(context.system)
 
   /**
     * The currently processed .txt file mapped
@@ -32,9 +33,7 @@ object ClientService extends MessageSequence with Actor with ActorLogging {
     */
   private var currentlyProcessedName : String = ""
 
-  import akka.actor.ActorSystem
-
-  val system: ActorSystem = ActorSystem.create("Appka")
+  implicit val system: ActorSystem = ActorSystem.create("Appka")
 
   /**
     * When the actor starts it tries to join the cluster.
@@ -42,6 +41,9 @@ object ClientService extends MessageSequence with Actor with ActorLogging {
     * none was found.
     */
   override def preStart(): Unit = {
+    log.info("Client started.")
+    log.info("Processing data.")
+
     toBeProcessedFileNames = getListOfFiles("").toSet
 
     // Akka Management hosts the HTTP routes used by bootstrap
