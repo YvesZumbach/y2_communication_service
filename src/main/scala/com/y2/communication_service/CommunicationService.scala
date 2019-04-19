@@ -1,6 +1,6 @@
 package com.y2.communication_service
 
-import akka.actor.{Actor, ActorLogging, ActorSystem}
+import akka.actor.{Actor, ActorLogging}
 import akka.cluster.ClusterEvent._
 import akka.cluster.Cluster
 import akka.management.cluster.bootstrap.ClusterBootstrap
@@ -45,7 +45,7 @@ class CommunicationService extends Actor with ActorLogging {
     */
   @Override
   def receive = {
-    case MemberUp(m) => println("some memeber is up.")
+    case MemberUp(m) => log.info(m + " is up.")
   }
 
 //  def register(member: Member): Unit =

@@ -1,8 +1,6 @@
 package com.y2
 
-import akka.actor.{ActorRef, ActorSystem, Props}
 import com.typesafe.scalalogging.LazyLogging
-import com.y2.client_service.ClientService
 import com.y2.config.Y2Config
 import com.y2.runtype.{CLIENT, NODE, NULL, Node}
 import scopt.OptionParser
@@ -26,6 +24,12 @@ object Main extends LazyLogging {
     cmd("node")
       .text("An y2 cluster work-horse, also known as 'a node'.")
       .action { (_, c) => c.copy(runType = NODE) }
+      .children(
+        opt[Boolean]("local")
+          .abbr("l")
+          .action((x, c) => c.copy(local = x))
+          .text("if true, a local cluster of three nodes will be started, otherwise, start just on node."),
+      )
 
     checkConfig(c => c.runType match {
       case NULL => failure("You must specify a subcommand.")
@@ -68,8 +72,12 @@ object Main extends LazyLogging {
     * @param c
     */
   def node(c: Y2Config): Unit = {
-    new Node(c, 1)
-    new Node(c, 2)
-    new Node(c, 3)
+    if (c.local) {
+      new Node(c)
+      new Node(c)
+      new Node(c)
+    } else {
+      new Node(c)
+    }
   }
 }
