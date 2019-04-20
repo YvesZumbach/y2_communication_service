@@ -24,7 +24,7 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
   private val zcontext: ZContext = new ZContext()
 
   private val workerServiceConnection = zcontext.createSocket(SocketType.PUB)
-  workerServiceConnection.bind("inproc://*:5563")
+  workerServiceConnection.bind("ipc://*:5563")
 
   /**
     * The client from which to get instructions to execute.
