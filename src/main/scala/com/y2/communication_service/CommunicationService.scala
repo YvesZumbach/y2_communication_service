@@ -19,14 +19,6 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
   private val cluster = Cluster(context.system)
 
   /**
-    * The ZeroMQ context.
-    */
-  private val zcontext: ZContext = new ZContext()
-
-  private val workerServiceConnection = zcontext.createSocket(SocketType.PUB)
-  workerServiceConnection.bind("ipc://*:5563")
-
-  /**
     * The client from which to get instructions to execute.
     * Null, when no client ever responded.
     */
@@ -83,7 +75,7 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
     case trainingData: TrainingDataAnswer =>
       log.info("Received data with reference value " + trainingData.reference
         + ". Sending data to the local worker service.")
-      workerServiceConnection.send(trainingData.reference)
+
       // TODO Also send the audio information
   }
 
