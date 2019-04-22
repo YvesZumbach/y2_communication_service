@@ -5,8 +5,6 @@ import akka.cluster.ClusterEvent._
 import akka.cluster.{Cluster, ClusterEvent}
 import com.y2.messages.ClientCommunicationMessage._
 import com.y2.messages.MessageSequence
-import org.zeromq.ZContext
-import org.zeromq.SocketType
 
 
 /**
