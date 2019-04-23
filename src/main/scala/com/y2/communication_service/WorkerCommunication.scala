@@ -1,8 +1,8 @@
 package com.y2.communication_service
 
-import java.net.{InetAddress, InetSocketAddress}
+import java.net.InetSocketAddress
 import java.nio.ByteBuffer
-import java.nio.channels.{AsynchronousSocketChannel, CompletionHandler}
+import java.nio.channels.{AsynchronousServerSocketChannel, AsynchronousSocketChannel, CompletionHandler}
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
@@ -13,7 +13,9 @@ class WorkerCommunication(val receiver: ActorRef) extends Actor with ActorLoggin
   private val MaxFrameSizePropName = "akka.remote.netty.tcp.maximum-frame-size"
   private val maxFrameSize = context.system.settings.config.getBytes(MaxFrameSizePropName).toInt
 
-  private val socket = AsynchronousSocketChannel.open()
+  private val server: AsynchronousServerSocketChannel = AsynchronousServerSocketChannel.open().bind(new InetSocketAddress(8888))
+
+  private var socket: AsynchronousSocketChannel = _
 
   private val sendQueue: ConcurrentLinkedQueue[Array[Byte]] = new ConcurrentLinkedQueue[Array[Byte]]()
 
@@ -32,7 +34,23 @@ class WorkerCommunication(val receiver: ActorRef) extends Actor with ActorLoggin
     }
   }
 
-  private val readCompletionHandler = new CompletionHandler[Integer, Void] {
+  private val acceptCompletionHandler: CompletionHandler[AsynchronousSocketChannel, Void] = new CompletionHandler[AsynchronousSocketChannel, Void] {
+    override def completed(v: AsynchronousSocketChannel, a: Void): Unit = {
+      // Save the socket
+      socket = v
+
+      // Start read and writes on the socket
+      start()
+    }
+
+    override def failed(throwable: Throwable, a: Void): Unit = {
+      log.error("Failed to accept connection from worker: " + throwable)
+      log.info("Listening again for incoming connections.")
+      server.accept(null, acceptCompletionHandler)
+    }
+  }
+
+  private val readCompletionHandler: CompletionHandler[Integer, Void] = new CompletionHandler[Integer, Void] {
     override def completed(v: Integer, a: Void): Unit = {
       // Extract received bytes
       val message = new Array[Byte](v)
@@ -42,7 +60,7 @@ class WorkerCommunication(val receiver: ActorRef) extends Actor with ActorLoggin
       // Start asynchronous read again
       socket.read(buffer, null, readCompletionHandler)
       // Execute read callback
-      if (receiver != null) receiver ! FromWorker(message)
+      receiver ! FromWorker(message)
     }
 
     override def failed(throwable: Throwable, a: Void): Unit = {
@@ -51,16 +69,8 @@ class WorkerCommunication(val receiver: ActorRef) extends Actor with ActorLoggin
   }
 
   def WorkerCommunication(): Unit = {
-    // Bind the socket; as soon as socket will be bound, reads and writes will start
-    socket.connect(new InetSocketAddress(InetAddress.getLoopbackAddress, 1234), null, new CompletionHandler[Void, Void] {
-      override def completed(v: Void, a: Void): Unit = start()
-
-      override def failed(throwable: Throwable, a: Void): Unit = {
-        log.error("Could not bind the address because an error occurred: " + throwable)
-        // Crash the communication service
-        sys.exit(1)
-      }
-    })
+    // Server accepts incoming connections
+    server.accept(null, acceptCompletionHandler)
   }
 
   private def start(): Unit = {

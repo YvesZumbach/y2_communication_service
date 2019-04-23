@@ -73,8 +73,6 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
     case trainingData: TrainingDataAnswer =>
       log.info("Received data with reference value " + trainingData.reference
         + ". Sending data to the local worker service.")
-
-      // TODO Also send the audio information
   }
 
 
