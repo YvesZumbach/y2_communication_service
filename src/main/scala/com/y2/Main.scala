@@ -5,18 +5,15 @@ import com.typesafe.config.{Config, ConfigFactory}
 import com.y2.communication_service.CommunicationService
 import com.y2.client_service.ClientService
 import com.y2.config.Y2Config
-import com.y2.messages.ClientCommunicationMessage.ClientRequest
 import com.y2.runtype.{Client, Node, Null}
 import scopt.OptionParser
 
 /**
   * The main entry point of the y2 cluster.
   */
-class Main { }
-
 object Main {
 
-  val parser = new OptionParser[Y2Config]("y2") {
+  private val parser = new OptionParser[Y2Config]("y2") {
     head("y2", "v1.0")
 
     note("The base command to handle a y2 cluster.")
@@ -52,12 +49,10 @@ object Main {
     val config = parser.parse(args, Y2Config())
     config match {
       case None => fail()
-      case Some(c) => {
-        c.runType match {
-          case Null => fail()
-          case Client => client()
-          case Node => node(c)
-        }
+      case Some(c) => c.runType match {
+        case Null => fail()
+        case Client => client()
+        case Node => node(c)
       }
     }
   }
@@ -72,7 +67,7 @@ object Main {
   /**
     * Start the y2 client.
     */
-  def client() = {
+  private def client(): Unit = {
     println("Running an y2 client.")
     val config: Config = ConfigFactory.parseString(s"""
         akka.cluster.roles = ["client"]
@@ -85,20 +80,25 @@ object Main {
     * Start an y2 node.
     * @param c
     */
-  def node(c: Y2Config): Unit = {
-    println("Running an y2 node.")
+  private def node(c: Y2Config): Unit = {
     if (c.local) {
-      for (i <- 1 to c.localNodeCount) {
+      println("Running a local y2 node.")
+      val urls = for (i <- 1 to c.localNodeCount) yield "\"akka://y2@127.0.0.1:255" + i + "\"\n"
+      val seedNodes = "akka.cluster.seed-nodes = [\n" + urls.reduce(_ + _) + "]\n"
+      // Create all systems first
+      val systems = for {
+        i <- 1 to c.localNodeCount
         // Use special configuration in order to run several nodes on one computer
-        val config: Config = ConfigFactory.parseString(s"""
-          akka.remote.artery.canonical.hostname = "127.0.0.$i"
-          akka.management.http.hostname = "127.0.0.$i"
+        config: Config = ConfigFactory.parseString(s"""
+          akka.management.http.hostname = "127.0.0.1"
+          akka.remote.artery.canonical.hostname = "127.0.0.1"
           akka.remote.artery.canonical.port = 255$i
-        """).withFallback(ConfigFactory.load())
-        val system = ActorSystem("y2", config)
-        system.actorOf(Props[CommunicationService], "communication")
-      }
+        """ + seedNodes).withFallback(ConfigFactory.load())
+      } yield ActorSystem("y2", config)
+      // Create a communication actor for each of the systems
+      systems.foreach(_.actorOf(Props[CommunicationService], "communication"))
     } else {
+      println("Running an y2 node.")
       // Use default configuration
       val system = ActorSystem("y2")
       system.actorOf(Props[CommunicationService], "communication")
