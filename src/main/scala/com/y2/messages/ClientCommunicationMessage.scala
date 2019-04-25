@@ -4,19 +4,6 @@ package com.y2.messages
   * Represent all messages exchanged between the client and the communication service.
   */
 object ClientCommunicationMessage {
-
-  /**
-    * Sent by nodes to request data to process to the client.
-    */
-  final case class TrainingDataRequest()
-
-  /**
-    * Contains the training data.
-    * @param data the input data
-    * @param reference the expected output
-    */
-  final case class TrainingDataAnswer(data: Array[Byte], reference: String)
-
   /**
     * Sent by node to clients to retrieve their ActorRef.
     */
