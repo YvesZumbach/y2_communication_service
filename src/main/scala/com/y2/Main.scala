@@ -5,6 +5,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import com.y2.communication_service.CommunicationService
 import com.y2.client_service.ClientService
 import com.y2.config.Y2Config
+import com.y2.messages.ToWorker
 import com.y2.runtype.{Client, Node, Null}
 import scopt.OptionParser
 
@@ -96,7 +97,15 @@ object Main {
         """ + seedNodes).withFallback(ConfigFactory.load())
       } yield ActorSystem("y2", config)
       // Create a communication actor for each of the systems
-      systems.foreach(_.actorOf(Props[CommunicationService], "communication"))
+      // systems.foreach(_.actorOf(Props[CommunicationService], "communication"))
+
+      val test = systems(0).actorOf(Props[CommunicationService], "communication")
+      test ! ToWorker("Message 1\n".getBytes)
+      test ! ToWorker("Message 2\n".getBytes)
+
+//      for (i <- 0 to 120) {
+//        test ! ToWorker("fsakdjaksjdnv;ahv;aksnv'ajvma;kencqianhciuagcliuahriulahbr iuahzviubhaincaezhvcaieh qe nhq pnh pqnhpeqnhqp nhp9rnhprenhpiupiunhpp9 np9 nhpu hp9vq hnp p9 npivqieq9rehpiu n\n".getBytes)
+//      }
     } else {
       println("Running an y2 node.")
       // Use default configuration

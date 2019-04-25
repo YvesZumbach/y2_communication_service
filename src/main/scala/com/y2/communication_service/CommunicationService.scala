@@ -4,13 +4,13 @@ import akka.actor.{Actor, ActorLogging, ActorRef, RootActorPath, Terminated}
 import akka.cluster.ClusterEvent._
 import akka.cluster.{Cluster, ClusterEvent}
 import com.y2.messages.ClientCommunicationMessage._
-import com.y2.messages.MessageSequence
+import com.y2.messages.{FromWorker, ToWorker}
 
 
 /**
   * Service that handles communication in the y2 cluster.
   */
-class CommunicationService extends Actor with ActorLogging with MessageSequence {
+class CommunicationService extends Actor with ActorLogging {
   /**
     * The y2 cluster.
     */
@@ -23,9 +23,9 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
   private var client: ActorRef = _
 
   /**
-    * Received data
+    * Communication with the worker service.
     */
-  private var data = scala.collection.mutable.Queue[(Array[Byte], String)]()
+  private val workerCommunication = new WorkerCommunication(this.self, context)
 
   /**
     * When the actor starts it tries to join the cluster.
@@ -49,7 +49,7 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
     * @return a function that handles the received messages.
     */
   @Override
-  def receive: PartialFunction[Any, Unit] = receiveChunks orElse {
+  def receive: PartialFunction[Any, Unit] = {
     case MemberUp(member) =>
       log.info(member + " is up.")
       if (client == null && member.hasRole("client")) {
@@ -68,13 +68,9 @@ class CommunicationService extends Actor with ActorLogging with MessageSequence 
       context.watch(sender())
       client = sender()
       log.info("A client answered. Requesting training data.")
-      client ! TrainingDataRequest()
 
-    case trainingData: TrainingDataAnswer =>
-      log.info("Received data with reference value " + trainingData.reference
-        + ". Sending data to the local worker service.")
+    case FromWorker(message) => log.info("Received message from worker service: " + new String(message))
+
+    case ToWorker(message) => workerCommunication.send(message)
   }
-
-
-
 }
