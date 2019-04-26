@@ -14,4 +14,9 @@ object ClientCommunicationMessage {
     */
   final case class ClientAnswer()
 
+  /**
+    * Node index messages contain the information needed by the nodes to know the range of training example they must
+    * process.
+    */
+  final case class NodeIndex(index: Int, total: Int)
 }

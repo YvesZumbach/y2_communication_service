@@ -1,5 +1,7 @@
 package com.y2.communication_service
 
+import java.nio.{ByteBuffer, ByteOrder}
+
 import akka.actor.{Actor, ActorLogging, ActorRef, RootActorPath, Terminated}
 import akka.cluster.ClusterEvent._
 import akka.cluster.{Cluster, ClusterEvent}
@@ -72,5 +74,10 @@ class CommunicationService extends Actor with ActorLogging {
     case FromWorker(message) => log.info("Received message from worker service: " + new String(message))
 
     case ToWorker(message) => workerCommunication.send(message)
+
+    case NodeIndex(index, total) =>
+      val message = ByteBuffer.allocate(8)
+      message.order(ByteOrder.BIG_ENDIAN).asIntBuffer().put(index).put(total)
+      workerCommunication.send(message.array())
   }
 }

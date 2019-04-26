@@ -22,6 +22,12 @@ object Main {
     cmd("client")
       .text("An y2 cluster entry point, also known as 'a client'.")
       .action { (_, c) => c.copy(runType = Client) }
+        .children(
+          opt[Int]("nodeCount")
+            .abbr("n")
+            .action{(v, c) => c.copy(nodeCount = v)}
+            .text("The number of nodes that will be part of the cluster (needed to compute which node will train on which data).")
+        )
 
     cmd("node")
       .text("An y2 cluster work-horse, also known as 'a node'.")
@@ -38,6 +44,9 @@ object Main {
 
     checkConfig(c => c.runType match {
       case Null => failure("You must specify a subcommand.")
+      case Client =>
+        if (c.nodeCount <= 0) failure("You must register how many node there is in the y2 cluster (option n)")
+        else success
       case _ => success
     })
   }
@@ -50,10 +59,12 @@ object Main {
     val config = parser.parse(args, Y2Config())
     config match {
       case None => fail()
-      case Some(c) => c.runType match {
-        case Null => fail()
-        case Client => client()
-        case Node => node(c)
+      case Some(c) =>
+        Y2Config.config = c
+        c.runType match {
+          case Null => fail()
+          case Client => client()
+          case Node => node()
       }
     }
   }
@@ -79,9 +90,9 @@ object Main {
 
   /**
     * Start an y2 node.
-    * @param c
     */
-  private def node(c: Y2Config): Unit = {
+  private def node(): Unit = {
+    val c = Y2Config.config
     if (c.local) {
       println("Running a local y2 node.")
       val urls = for (i <- 1 to c.localNodeCount) yield "\"akka://y2@127.0.0.1:255" + i + "\"\n"

@@ -1,10 +1,10 @@
 package com.y2.client_service
 
-import akka.actor.{Actor, ActorLogging}
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.cluster.{Cluster, ClusterEvent}
-import com.y2.messages.ClientCommunicationMessage.{ClientAnswer, ClientRequest}
-
+import com.y2.messages.ClientCommunicationMessage.{ClientAnswer, ClientRequest, NodeIndex}
 import akka.cluster.ClusterEvent.MemberUp
+import com.y2.config.Y2Config
 
 class ClientService extends Actor with ActorLogging {
 
@@ -12,6 +12,16 @@ class ClientService extends Actor with ActorLogging {
     * The y2 cluster.
     */
   private val cluster = Cluster(context.system)
+
+  /**
+    * The list of all registered nodes of the y2 cluster.
+    */
+  private var nodes: List[ActorRef] = Nil
+
+  /**
+    * Whether registration of nodes is still opened.
+    */
+  private var isRegistrationOpen = true
 
   /**
     * When the actor starts it tries to join the cluster.
@@ -31,9 +41,19 @@ class ClientService extends Actor with ActorLogging {
     */
   @Override
   def receive = {
-    case MemberUp(m) => log.info("Member up!")
     case ClientRequest =>
-      log.info("Received client request")
-      sender ! ClientAnswer
+      if (isRegistrationOpen) {
+        log.info("Node " + sender() + " registered.")
+        nodes = sender() :: nodes
+        sender ! ClientAnswer
+        if (nodes.length >= Y2Config.config.nodeCount) {
+          isRegistrationOpen = false
+          var count = 0
+          nodes.foreach(node => {
+            node ! NodeIndex(count, Y2Config.config.nodeCount)
+            count = count + 1
+          })
+        }
+      }
   }
 }
