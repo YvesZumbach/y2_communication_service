@@ -7,11 +7,10 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 import akka.actor.{ActorContext, ActorRef}
 import akka.event.{Logging, LoggingAdapter}
-import com.y2.messages.FromWorker
+import com.y2.messages.Message.WorkerToCommunicationMessage
 
 class WorkerCommunication {
-  private val byteNumberForSizeMessage = 4
-  private final var maxFrameSize: Int = _
+  private val byteNumberForSizeMessage = 8
 
   private final var receiver: ActorRef = _
   private final var context: ActorContext = _
@@ -19,7 +18,7 @@ class WorkerCommunication {
   private val server: AsynchronousServerSocketChannel = AsynchronousServerSocketChannel.open().bind(new InetSocketAddress(8888))
   private var socket: AsynchronousSocketChannel = _
 
-  private val sendQueue: ConcurrentLinkedQueue[Array[Byte]] = new ConcurrentLinkedQueue[Array[Byte]]()
+  private val sendQueue: ConcurrentLinkedQueue[(Int, Array[Byte])] = new ConcurrentLinkedQueue[(Int, Array[Byte])]()
   private var buffer: ByteBuffer = ByteBuffer.allocate(byteNumberForSizeMessage)
 
   private final var log: LoggingAdapter = _
@@ -57,32 +56,36 @@ class WorkerCommunication {
         restartRead()
         return
       }
-      if (v != 4) {
+      if (v != byteNumberForSizeMessage) {
         log.error("Wrong number of byte received for the size message.")
         restartRead()
         return
       }
       // Allocate new buffer for next read operation of correct size
-      val declaredSize = buffer.getInt(0)
-      buffer = ByteBuffer.allocate(declaredSize)
+      val messageType = buffer.getInt(0)
+      val declaredSize = buffer.getInt(4)
       // Start synchronous read
+      buffer = ByteBuffer.allocate(declaredSize)
       val receivedSize = socket.read(buffer).get()
       if (declaredSize != receivedSize) {
         log.error(s"Received $receivedSize byte will should have received $declaredSize. Dropping this message.")
         restartRead()
         return
       }
-      log.info("Received a message from the worker service of length " + declaredSize)
+      log.info("Received a message of type "
+        + messageType
+        + " of length " + declaredSize
+        + " bytes from the worker service")
       // Copy received bytes into an array
       val message = buffer.array()
       restartRead()
       // Execute read callback
-      receiver ! FromWorker(message)
+      receiver ! WorkerToCommunicationMessage(messageType, message)
     }
 
     private def restartRead(): Unit = {
       // Create new buffer for next size message
-      buffer = createSizeMessageBuffer()
+      buffer = createEmptyHandshakeBuffer()
       // Start asynchronous read again
       socket.read(buffer, null, readCompletionHandler)
     }
@@ -102,7 +105,6 @@ class WorkerCommunication {
 
     this.receiver = receiver
     this.context = context
-    this.maxFrameSize = context.system.settings.config.getBytes("akka.remote.netty.tcp.maximum-frame-size").toInt
     this.log = Logging(context.system, "worker communication")
 
     // Server accepts incoming connections
@@ -116,16 +118,6 @@ class WorkerCommunication {
     log.info("Listening for message from " + socket.getRemoteAddress)
 
     // Start sending
-    sendInner()
-  }
-
-  def send(msg: Array[Byte]) : Unit = {
-    sendQueue.add(msg)
-    log.info("A message was added into the queue of message to send to the worker service.")
-    sendQueue.synchronized { sendQueue.notifyAll() }
-  }
-
-  private def sendInner() = {
     sendingThread = new Thread {
       override def run() {
         try {
@@ -133,12 +125,12 @@ class WorkerCommunication {
             // Wait until a message to send is received
             while (sendQueue.isEmpty) sendQueue.synchronized { sendQueue.wait() }
             // Retrieve the message to send
-            val msg = sendQueue.poll()
+            val (messageType, message) = sendQueue.poll()
             // Send the message size
-            val sizeBuffer = createSizeMessageBuffer(msg.length)
-            socket.write(sizeBuffer)
+            val handshakeBuffer = createHandshakeBuffer(messageType, message.length)
+            socket.write(handshakeBuffer).get()
             // Send the message synchronously
-            socket.write(ByteBuffer.wrap(msg)).get()
+            socket.write(ByteBuffer.wrap(message)).get()
             log.info("Queued message was sent to the worker service.")
           }
         } catch {
@@ -149,10 +141,21 @@ class WorkerCommunication {
     sendingThread.start()
   }
 
-  private def createSizeMessageBuffer(size: Int = 0): ByteBuffer = {
+  def send(messageType: Int, message: Array[Byte]) : Unit = {
+    sendQueue.add((messageType, message))
+    log.info("A message was added into the queue of message to send to the worker service.")
+    sendQueue.synchronized { sendQueue.notifyAll() }
+  }
+
+  private def createEmptyHandshakeBuffer(): ByteBuffer = {
     val sizeMessageBuffer = ByteBuffer.allocate(byteNumberForSizeMessage)
     sizeMessageBuffer.order(ByteOrder.BIG_ENDIAN)
-    if (size != 0) sizeMessageBuffer.asIntBuffer().put(size)
+    sizeMessageBuffer
+  }
+
+  private def createHandshakeBuffer(messageType: Int, size: Int): ByteBuffer = {
+    val sizeMessageBuffer = createEmptyHandshakeBuffer()
+    sizeMessageBuffer.asIntBuffer().put(messageType).put(size)
     sizeMessageBuffer
   }
 }

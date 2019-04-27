@@ -2,7 +2,7 @@ package com.y2.client_service
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.cluster.{Cluster, ClusterEvent}
-import com.y2.messages.ClientCommunicationMessage.{ClientAnswer, ClientRequest, NodeIndex}
+import com.y2.messages.Message.{ClientAnswer, ClientRequest, NodeIndex}
 import akka.cluster.ClusterEvent.MemberUp
 import com.y2.config.Y2Config
 
