@@ -47,6 +47,7 @@ class ClientService extends Actor with ActorLogging {
         nodes = sender() :: nodes
         sender ! ClientAnswer
         if (nodes.length >= Y2Config.config.nodeCount) {
+          log.info("All nodes registered to the client! Sending node index which will start the training.")
           isRegistrationOpen = false
           var count = 0
           nodes.foreach(node => {

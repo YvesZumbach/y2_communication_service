@@ -4,6 +4,7 @@ import com.y2.runtype.{RunType, Null}
 
 case class Y2Config(
                      runType: RunType = Null,
+                     seedNode: String = null,
                      // Client option
                      nodeCount: Int = -1,
                      // Node options

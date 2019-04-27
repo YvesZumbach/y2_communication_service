@@ -69,7 +69,7 @@ class CommunicationService extends Actor with ActorLogging {
       // Watch the client that answered to monitor whether it dies at some point.
       context.watch(sender())
       client = sender()
-      log.info("A client answered. Requesting training data.")
+      log.info("A client answered.")
 
     case FromWorker(message) => log.info("Received message from worker service: " + new String(message))
 

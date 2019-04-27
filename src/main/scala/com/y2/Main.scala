@@ -5,8 +5,8 @@ import com.typesafe.config.{Config, ConfigFactory}
 import com.y2.communication_service.CommunicationService
 import com.y2.client_service.ClientService
 import com.y2.config.Y2Config
-import com.y2.messages.ToWorker
 import com.y2.runtype.{Client, Node, Null}
+import com.y2.utils.Utils
 import scopt.OptionParser
 
 /**
@@ -23,7 +23,7 @@ object Main {
       .text("An y2 cluster entry point, also known as 'a client'.")
       .action { (_, c) => c.copy(runType = Client) }
         .children(
-          opt[Int]("nodeCount")
+          opt[Int]("node-count")
             .abbr("n")
             .action{(v, c) => c.copy(nodeCount = v)}
             .text("The number of nodes that will be part of the cluster (needed to compute which node will train on which data).")
@@ -36,18 +36,31 @@ object Main {
         opt[Boolean]("local")
           .abbr("l")
           .action((x, c) => c.copy(local = x))
-          .text("if true, a local cluster of three nodes will be started, otherwise, start just on node."),
-        opt[Int]("localNodeCount")
+          .text("If true, a local cluster of three nodes will be started, otherwise, start just on node."),
+        opt[Int]("local-node-count")
           .action((x, c) => c.copy(localNodeCount = x))
-          .text("the number of local node to run.")
+          .text("The number of local node to run.")
       )
+
+    opt[String]("seed-node")
+      .required()
+      .abbr("s")
+      .action((x, c) => c.copy(seedNode = x))
+      .text("The IP address to use to enter the cluster (cannot be 127.0.0.1). If you are starting the first node of th cluster, use the external IP of the node.")
 
     checkConfig(c => c.runType match {
       case Null => failure("You must specify a subcommand.")
-      case Client =>
-        if (c.nodeCount <= 0) failure("You must register how many node there is in the y2 cluster (option n)")
-        else success
-      case _ => success
+      case _ =>
+        if (!c.local && !Utils.isValidIpv4(c.seedNode)) {
+          failure("Invalid IPv4 address for seed node parameter. Please set a valid IPv4 for the seed-node parameter.")
+        } else {
+          c.runType match {
+            case Client =>
+              if (c.nodeCount <= 0) failure("You must register how many node there is in the y2 cluster (option n)")
+              else success
+            case _ => success
+          }
+        }
     })
   }
 
@@ -81,9 +94,11 @@ object Main {
     */
   private def client(): Unit = {
     println("Running an y2 client.")
-    val config: Config = ConfigFactory.parseString(s"""
-        akka.cluster.roles = ["client"]
-        """).withFallback(ConfigFactory.load())
+    val config: Config = ConfigFactory.parseString(
+      "akka.cluster.roles = [\"client\"]\n"
+        + Utils.computeArteryHostConfigurationString()
+        + Utils.computeSeedNodeConfigurationString(Y2Config.config.seedNode)
+    ).withFallback(ConfigFactory.load())
     val system = ActorSystem("y2", config)
     val client = system.actorOf(Props[ClientService], "client")
   }
@@ -102,7 +117,6 @@ object Main {
         i <- 1 to c.localNodeCount
         // Use special configuration in order to run several nodes on one computer
         config: Config = ConfigFactory.parseString(s"""
-          akka.management.http.hostname = "127.0.0.1"
           akka.remote.artery.canonical.hostname = "127.0.0.1"
           akka.remote.artery.canonical.port = 255$i
         """ + seedNodes).withFallback(ConfigFactory.load())
@@ -111,8 +125,12 @@ object Main {
       systems.foreach(_.actorOf(Props[CommunicationService], "communication"))
     } else {
       println("Running an y2 node.")
-      // Use default configuration
-      val system = ActorSystem("y2")
+      val config: Config = ConfigFactory.parseString(
+        "akka.cluster.roles = [\"node\"]\n"
+        + Utils.computeArteryHostConfigurationString()
+        + Utils.computeSeedNodeConfigurationString(c.seedNode)
+      ).withFallback(ConfigFactory.load())
+      val system = ActorSystem("y2", config)
       system.actorOf(Props[CommunicationService], "communication")
     }
   }
