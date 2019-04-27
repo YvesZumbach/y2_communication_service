@@ -15,9 +15,7 @@ import scopt.OptionParser
 object Main {
 
   private val parser = new OptionParser[Y2Config]("y2") {
-    head("y2", "v1.0")
-
-    note("The base command to handle a y2 cluster.")
+    head("y2", "v1.0", "The base command to handle a y2 cluster.")
 
     cmd("client")
       .text("An y2 cluster entry point, also known as 'a client'.")
@@ -26,8 +24,15 @@ object Main {
           opt[Int]("node-count")
             .abbr("n")
             .action{(v, c) => c.copy(nodeCount = v)}
-            .text("The number of nodes that will be part of the cluster (needed to compute which node will train on which data).")
+            .text("The number of nodes that will be part of the cluster (needed to compute which node will train on which data)."),
+          opt[String]("seed-ip")
+            .required()
+            .abbr("s")
+            .action((x, c) => c.copy(seedIp = x))
+            .text("The IP address to use to enter the cluster (must an external IP). If you are starting the first node of th cluster, use the external IP of the node.")
         )
+
+    note("")
 
     cmd("node")
       .text("An y2 cluster work-horse, also known as 'a node'.")
@@ -39,20 +44,19 @@ object Main {
           .text("If true, a local cluster of three nodes will be started, otherwise, start just on node."),
         opt[Int]("local-node-count")
           .action((x, c) => c.copy(localNodeCount = x))
-          .text("The number of local node to run.")
+          .text("The number of local node to run."),
+        opt[String]("seed-ip")
+          .required()
+          .abbr("s")
+          .action((x, c) => c.copy(seedIp = x))
+          .text("The IP address to use to enter the cluster (must an external IP). If you are starting the first node of th cluster, use the external IP of the node.")
       )
-
-    opt[String]("seed-node")
-      .required()
-      .abbr("s")
-      .action((x, c) => c.copy(seedNode = x))
-      .text("The IP address to use to enter the cluster (cannot be 127.0.0.1). If you are starting the first node of th cluster, use the external IP of the node.")
 
     checkConfig(c => c.runType match {
       case Null => failure("You must specify a subcommand.")
       case _ =>
-        if (!c.local && !Utils.isValidIpv4(c.seedNode)) {
-          failure("Invalid IPv4 address for seed node parameter. Please set a valid IPv4 for the seed-node parameter.")
+        if (!c.local && !Utils.isValidIpv4(c.seedIp)) {
+          failure("Invalid IPv4 address for seed-ip parameter. Please set a valid IPv4 for the seed-ip parameter.")
         } else {
           c.runType match {
             case Client =>
@@ -97,7 +101,7 @@ object Main {
     val config: Config = ConfigFactory.parseString(
       "akka.cluster.roles = [\"client\"]\n"
         + Utils.computeArteryHostConfigurationString()
-        + Utils.computeSeedNodeConfigurationString(Y2Config.config.seedNode)
+        + Utils.computeSeedNodeConfigurationString(Y2Config.config.seedIp)
     ).withFallback(ConfigFactory.load())
     val system = ActorSystem("y2", config)
     val client = system.actorOf(Props[ClientService], "client")
@@ -128,7 +132,7 @@ object Main {
       val config: Config = ConfigFactory.parseString(
         "akka.cluster.roles = [\"node\"]\n"
         + Utils.computeArteryHostConfigurationString()
-        + Utils.computeSeedNodeConfigurationString(c.seedNode)
+        + Utils.computeSeedNodeConfigurationString(c.seedIp)
       ).withFallback(ConfigFactory.load())
       val system = ActorSystem("y2", config)
       system.actorOf(Props[CommunicationService], "communication")
