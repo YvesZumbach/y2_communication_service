@@ -24,6 +24,11 @@ class CommunicationService extends Actor with ActorLogging {
   private var client: ActorRef = _
 
   /**
+    * The index of this node in the cluster.
+    */
+  private var nodeIndex: Int = _
+
+  /**
     * Communication with the worker service.
     */
   private val workerCommunication = new WorkerCommunication(this.self, context)
@@ -70,11 +75,34 @@ class CommunicationService extends Actor with ActorLogging {
       client = sender()
       log.info("A client answered.")
 
-    case WorkerToCommunicationMessage(messageType, message) => log.info("Received message from worker service: " + new String(message))
+    case message: WorkerToCommunicationMessage =>
+      message.messageType match {
+        case CommunicationService.DELTA_MESSAGE =>
+          context.system.actorSelection("/user/node") ! Delta(message.message)
+        case CommunicationService.RUNTIME_MESSAGE =>
+          // Extract time spent on each tasks
+          val buffer = ByteBuffer.wrap(message.message).asReadOnlyBuffer()
+          val decompressionMilli = buffer.getInt(0)
+          val trainingMilli = buffer.getInt(4)
+          val compressionMilli = buffer.getInt(8)
+          // Send Runtime message to the client that will do some stats
+          client ! Runtime(nodeIndex, decompressionMilli, trainingMilli, compressionMilli)
+        case CommunicationService.FINISHED_MESSAGE =>
+          client ! Finished(nodeIndex)
+      }
 
     case NodeIndex(index, total) =>
       val message = ByteBuffer.allocate(8)
       message.order(ByteOrder.BIG_ENDIAN).asIntBuffer().put(index).put(total)
-      workerCommunication.send(0, message.array())
+      workerCommunication.send(CommunicationService.NODE_INDEX_MESSAGE, message.array())
+
+    case Delta(deltas) => workerCommunication.send(CommunicationService.DELTA_MESSAGE, deltas)
   }
+}
+
+object CommunicationService {
+  val NODE_INDEX_MESSAGE = 0
+  val DELTA_MESSAGE = 1
+  val RUNTIME_MESSAGE = 2
+  val FINISHED_MESSAGE = 3
 }
