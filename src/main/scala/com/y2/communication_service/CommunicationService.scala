@@ -87,8 +87,9 @@ class CommunicationService extends Actor with ActorLogging {
           val decompressionMilli = buffer.getInt(4)
           val trainingMilli = buffer.getInt(8)
           val compressionMilli = buffer.getInt(12)
+          val loss = buffer.getInt(16)
           // Send Runtime message to the client that will do some stats
-          client ! Runtime(sampleCount, decompressionMilli, trainingMilli, compressionMilli)
+          client ! Runtime(sampleCount, decompressionMilli, trainingMilli, compressionMilli, loss)
         case CommunicationService.FINISHED_MESSAGE =>
           client ! Finished(Instant.now)
       }

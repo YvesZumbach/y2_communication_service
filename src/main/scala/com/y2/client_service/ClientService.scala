@@ -55,7 +55,7 @@ class ClientService extends Actor with ActorLogging {
     */
   private val runtimeDataCsvFileWriter = CSVWriter.open(outputFileBaseName + "_runtime.csv")
 
-  runtimeDataCsvFileWriter.writeRow(List("node", "sampleCount", "decompressionMilli", "trainingMilli", "compressionMilli", "timestamp"))
+  runtimeDataCsvFileWriter.writeRow(List("node", "sampleCount", "decompressionMilli", "trainingMilli", "compressionMilli", "loss", "timestamp"))
   clusterEventsCsvFileWriter.writeRow(List("eventType", "node", "timestamp", "description"))
 
   /**
@@ -103,8 +103,8 @@ class ClientService extends Actor with ActorLogging {
         // TODO: Stop the whole cluster.
       }
 
-    case Runtime(sampleCount, decompressionMilli, trainingMilli, compressionMilli) =>
-      log.info(s"""Received stats from $sender(): processed $sampleCount samples, took $decompressionMilli [ms] to decompress, $trainingMilli [ms] to train and $compressionMilli [ms] to compress.""")
-      runtimeDataCsvFileWriter.writeRow(List(sender(), sampleCount, decompressionMilli, trainingMilli, compressionMilli, Instant.now))
+    case Runtime(sampleCount, decompressionMilli, trainingMilli, compressionMilli, loss) =>
+      log.info(s"""Received stats from $sender(): processed $sampleCount samples, took $decompressionMilli [ms] to decompress, $trainingMilli [ms] to train and $compressionMilli [ms] to compress; loss was $loss.""")
+      runtimeDataCsvFileWriter.writeRow(List(sender(), sampleCount, decompressionMilli, trainingMilli, compressionMilli, loss, Instant.now))
   }
 }

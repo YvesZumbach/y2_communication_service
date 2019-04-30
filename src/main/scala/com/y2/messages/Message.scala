@@ -38,8 +38,9 @@ object Message {
     * @param decompressionMilli The time spent on decompressing the messages in milliseconds.
     * @param trainingMilli The time spent on training in milliseconds.
     * @param compressionMilli The time spent on compression the deltas in milliseconds.
+    * @param loss The loss of the epoch multiplied by 1000.
     */
-  final case class Runtime(sampleCount: Int, decompressionMilli: Int, trainingMilli: Int, compressionMilli: Int)
+  final case class Runtime(sampleCount: Int, decompressionMilli: Int, trainingMilli: Int, compressionMilli: Int, loss: Int)
 
   /**
     * The message sent when a node finished training on all its samples
