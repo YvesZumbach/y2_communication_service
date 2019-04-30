@@ -1,5 +1,7 @@
 package com.y2.messages
 
+import java.time.Instant
+
 /**
   * Represent all messages exchanged between the client and the communication service.
   */
@@ -32,17 +34,17 @@ object Message {
   /**
     * Sent after each epoch, contains the amount of time spent on each of the tasks the worker performs,
     * for measurements purposes
-    * @param index The index of the node sending the message (see NodeIndex message)
+    * @param sampleCount The number of sample processed.
     * @param decompressionMilli The time spent on decompressing the messages in milliseconds.
     * @param trainingMilli The time spent on training in milliseconds.
     * @param compressionMilli The time spent on compression the deltas in milliseconds.
     */
-  final case class Runtime(index: Int, decompressionMilli: Int, trainingMilli: Int, compressionMilli: Int)
+  final case class Runtime(sampleCount: Int, decompressionMilli: Int, trainingMilli: Int, compressionMilli: Int)
 
   /**
     * The message sent when a node finished training on all its samples
     * @param index The index of the node that completed (the index of the node is received from the client using the
     *              NodeIndex message)
     */
-  final case class Finished(index: Int)
+  final case class Finished(timestamp: Instant)
 }

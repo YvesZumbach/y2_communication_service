@@ -1,6 +1,7 @@
 package com.y2.communication_service
 
 import java.nio.{ByteBuffer, ByteOrder}
+import java.time.Instant
 
 import akka.actor.{Actor, ActorLogging, ActorRef, RootActorPath, Terminated}
 import akka.cluster.ClusterEvent._
@@ -82,13 +83,14 @@ class CommunicationService extends Actor with ActorLogging {
         case CommunicationService.RUNTIME_MESSAGE =>
           // Extract time spent on each tasks
           val buffer = ByteBuffer.wrap(message.message).asReadOnlyBuffer()
-          val decompressionMilli = buffer.getInt(0)
-          val trainingMilli = buffer.getInt(4)
-          val compressionMilli = buffer.getInt(8)
+          val sampleCount = buffer.getInt(0)
+          val decompressionMilli = buffer.getInt(4)
+          val trainingMilli = buffer.getInt(8)
+          val compressionMilli = buffer.getInt(12)
           // Send Runtime message to the client that will do some stats
-          client ! Runtime(nodeIndex, decompressionMilli, trainingMilli, compressionMilli)
+          client ! Runtime(sampleCount, decompressionMilli, trainingMilli, compressionMilli)
         case CommunicationService.FINISHED_MESSAGE =>
-          client ! Finished(nodeIndex)
+          client ! Finished(Instant.now)
       }
 
     case NodeIndex(index, total) =>
