@@ -10,7 +10,7 @@ import akka.event.{Logging, LoggingAdapter}
 import com.y2.messages.Message.WorkerToCommunicationMessage
 
 class WorkerCommunication {
-  private val byteNumberForSizeMessage = 8
+  private val handshakeLength = 8
 
   private final var receiver: ActorRef = _
   private final var context: ActorContext = _
@@ -19,7 +19,7 @@ class WorkerCommunication {
   private var socket: AsynchronousSocketChannel = _
 
   private val sendQueue: ConcurrentLinkedQueue[(Int, Array[Byte])] = new ConcurrentLinkedQueue[(Int, Array[Byte])]()
-  private var buffer: ByteBuffer = ByteBuffer.allocate(byteNumberForSizeMessage)
+  private var buffer: ByteBuffer = ByteBuffer.allocate(handshakeLength)
 
   private final var log: LoggingAdapter = _
 
@@ -27,7 +27,7 @@ class WorkerCommunication {
 
   private val acceptCompletionHandler: CompletionHandler[AsynchronousSocketChannel, Void] = new CompletionHandler[AsynchronousSocketChannel, Void] {
     override def completed(v: AsynchronousSocketChannel, a: Void): Unit = {
-      log.info("Connection established with " + v.getRemoteAddress)
+      log.info("Connection established with worker at address " + v.getRemoteAddress)
       socket = v
       // Start read and writes on the socket
       start()
@@ -56,8 +56,8 @@ class WorkerCommunication {
         restartRead()
         return
       }
-      if (v != byteNumberForSizeMessage) {
-        log.error("Wrong number of byte received for the size message.")
+      if (v != handshakeLength) {
+        log.error("Wrong number of byte received for the size message. Expected " + handshakeLength + ", received " + v)
         restartRead()
         return
       }
@@ -68,7 +68,7 @@ class WorkerCommunication {
       buffer = ByteBuffer.allocate(declaredSize)
       val receivedSize = socket.read(buffer).get()
       if (declaredSize != receivedSize) {
-        log.error(s"Received $receivedSize byte will should have received $declaredSize. Dropping this message.")
+        log.error(s"Received $receivedSize byte, $declaredSize were expected. Dropping this message.")
         restartRead()
         return
       }
@@ -91,7 +91,7 @@ class WorkerCommunication {
     }
 
     override def failed(throwable: Throwable, a: Void): Unit = {
-      log.error("Failed to receive a message: " + throwable)
+      log.error("Failed to receive a message from the worker: " + throwable)
 
       log.info("Communication with the worker service was reset. Listening again for incoming worker service connections...")
       sendingThread.interrupt()
@@ -115,7 +115,7 @@ class WorkerCommunication {
   private def start(): Unit = {
     // Start reading
     socket.read(buffer, null, readCompletionHandler)
-    log.info("Listening for message from " + socket.getRemoteAddress)
+    log.info("Listening for message from worker at address " + socket.getRemoteAddress)
 
     // Start sending
     sendingThread = new Thread {
@@ -148,7 +148,7 @@ class WorkerCommunication {
   }
 
   private def createEmptyHandshakeBuffer(): ByteBuffer = {
-    val sizeMessageBuffer = ByteBuffer.allocate(byteNumberForSizeMessage)
+    val sizeMessageBuffer = ByteBuffer.allocate(handshakeLength)
     sizeMessageBuffer.order(ByteOrder.BIG_ENDIAN)
     sizeMessageBuffer
   }
