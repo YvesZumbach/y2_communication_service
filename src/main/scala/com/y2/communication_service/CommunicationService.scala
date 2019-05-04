@@ -79,7 +79,8 @@ class CommunicationService extends Actor with ActorLogging {
     case message: WorkerToCommunicationMessage =>
       message.messageType match {
         case CommunicationService.DELTA_MESSAGE =>
-          context.system.actorSelection("/user/node") ! Delta(message.message)
+          // TODO: Only send to nodes, not to the client
+          context.actorSelection("/user/*") ! Delta(message.message)
         case CommunicationService.RUNTIME_MESSAGE =>
           // Extract time spent on each tasks
           val buffer = ByteBuffer.wrap(message.message).asReadOnlyBuffer()
@@ -99,7 +100,12 @@ class CommunicationService extends Actor with ActorLogging {
       message.order(ByteOrder.BIG_ENDIAN).asIntBuffer().put(index).put(total)
       workerCommunication.send(CommunicationService.NODE_INDEX_MESSAGE, message.array())
 
-    case Delta(deltas) => workerCommunication.send(CommunicationService.DELTA_MESSAGE, deltas)
+    case Delta(deltas) =>
+      if (!sender().equals(self)) {
+        val deltaLength = deltas.length
+        log.info(s"Delta message of size $deltaLength received from $sender.")
+        workerCommunication.send(CommunicationService.DELTA_MESSAGE, deltas)
+      }
   }
 }
 
