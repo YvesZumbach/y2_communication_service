@@ -3,7 +3,7 @@ package com.y2.communication_service
 import java.nio.{ByteBuffer, ByteOrder}
 import java.time.Instant
 
-import akka.actor.{Actor, ActorLogging, ActorRef, RootActorPath, Terminated}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, RootActorPath, Terminated}
 import akka.cluster.ClusterEvent._
 import akka.cluster.{Cluster, ClusterEvent}
 import com.y2.messages.Message._
@@ -23,6 +23,16 @@ class CommunicationService extends Actor with ActorLogging {
     * Null, when no client ever responded.
     */
   private var client: ActorRef = _
+
+  /**
+    * The buffer of other nodes in the cluster, of type ActorSelection
+    */
+  private var nodesBuffer = scala.collection.mutable.ListBuffer.empty[ActorSelection]
+
+  /**
+    * The final list of ActorSelection objects representing all other nodes in the cluster
+    */
+  private var nodes: List[ActorSelection] = _
 
   /**
     * The index of this node in the cluster.
@@ -62,7 +72,9 @@ class CommunicationService extends Actor with ActorLogging {
       if (client == null && member.hasRole("client")) {
         log.info("A client is up. Sending a client request.")
         context.actorSelection(RootActorPath(member.address) / "user" / "client") ! ClientRequest
-    }
+      } else if (member.hasRole("node")) {
+        nodesBuffer += context.actorSelection(RootActorPath(member.address) / "user" / "node")
+      }
 
     case Terminated(actor) =>
       if (actor.equals(client)) {
@@ -79,8 +91,8 @@ class CommunicationService extends Actor with ActorLogging {
     case message: WorkerToCommunicationMessage =>
       message.messageType match {
         case CommunicationService.DELTA_MESSAGE =>
-          // TODO: Only send to nodes, not to the client
-          context.actorSelection("/user/*") ! Delta(message.message)
+          val deltaMessage = Delta(message.message)
+          nodes.foreach(a => a ! deltaMessage)
         case CommunicationService.RUNTIME_MESSAGE =>
           // Extract time spent on each tasks
           val buffer = ByteBuffer.wrap(message.message).asReadOnlyBuffer()
@@ -99,6 +111,8 @@ class CommunicationService extends Actor with ActorLogging {
       val message = ByteBuffer.allocate(8)
       message.order(ByteOrder.BIG_ENDIAN).asIntBuffer().put(index).put(total)
       workerCommunication.send(CommunicationService.NODE_INDEX_MESSAGE, message.array())
+      // this means that we have received all MemberUp messages
+      nodes = nodesBuffer.toList
 
     case Delta(deltas) =>
       if (!sender().equals(self)) {
