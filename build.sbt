@@ -1,6 +1,6 @@
 name := "y2"
 
-version := "1.0"
+version := "1.1"
 
 scalaVersion := "2.12.6"
 
@@ -11,6 +11,5 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster" % "2.5.22",
-  "org.scalatest" %% "scalatest" % "3.0.5" % "test",
-  "com.github.tototoshi" %% "scala-csv" % "1.3.5"
+  "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 )
