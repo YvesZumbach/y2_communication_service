@@ -5,6 +5,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import com.y2.communication_service.CommunicationService
 import com.y2.client_service.ClientService
 import com.y2.config.Y2Config
+import com.y2.messages.Message.NodeIndex
 import com.y2.runtype.{Client, Node, Null}
 import com.y2.utils.Utils
 import scopt.OptionParser
@@ -126,7 +127,11 @@ object Main {
         """ + seedNodes).withFallback(ConfigFactory.load())
       } yield ActorSystem("y2", config)
       // Create a communication actor for each of the systems
-      systems.foreach(_.actorOf(Props[CommunicationService], "communication"))
+      val communicationServices = for (system <- systems)
+        yield system.actorOf(Props[CommunicationService], "communication")
+
+      for ((communicationService, index) <- communicationServices.zipWithIndex)
+        communicationService ! NodeIndex(index, c.localNodeCount)
     } else {
       println("Running an y2 node.")
       val config: Config = ConfigFactory.parseString(
