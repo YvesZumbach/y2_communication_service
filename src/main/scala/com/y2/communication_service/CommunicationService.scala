@@ -73,7 +73,7 @@ class CommunicationService extends Actor with ActorLogging {
         log.info("A client is up. Sending a client request.")
         context.actorSelection(RootActorPath(member.address) / "user" / "client") ! ClientRequest
       } else if (member.hasRole("node")) {
-        nodesBuffer += context.actorSelection(RootActorPath(member.address) / "user" / "node")
+        nodesBuffer += context.actorSelection(RootActorPath(member.address) / "user" / "communication")
       }
 
     case Terminated(actor) =>
